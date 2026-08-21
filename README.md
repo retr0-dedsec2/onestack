@@ -18,7 +18,7 @@ The current branch contains a working framework foundation without React as the 
 - token-aware portable styles and utility bridge
 - file routing and dynamic/catch-all matching
 - server functions + transport-neutral typed RPC
-- universal UI primitives
+- universal UI primitives with semantic/a11y foundations
 - component portability analysis and React/shadcn-style source conversion
 - executable CLI with `dev`, `build`, `preview`, `check`, `add`, and `import`
 
@@ -69,6 +69,12 @@ The client reuses SSR host elements and reactive boundaries instead of replacing
 
 `onestack import` performs a real source conversion for the portable subset: it removes React runtime imports, maps common shadcn UI primitives to `@onestack/ui`, rewrites `className` to `class`, and emits a portability report. Browser-only, Canvas/WebGL, raw-HTML, and dynamic-code patterns are flagged rather than silently pretending to be native-portable.
 
+## What v0.1 means
+
+v0.1 is the usable **web/full-stack core**. It is not yet the final promise of one binary/runtime for every platform. Desktop and native mobile require their own host renderers, but they will consume the same VNode/component model, signals, Style IR, route/server manifests, and Universal IR rather than forcing application code to migrate to another framework.
+
 ## Platform roadmap
 
-The v0.1 target is a stable web/full-stack core. Desktop and native mobile renderers will consume the same component model, signals, Style IR, route/server manifests, and Universal IR; they are separate renderer/host milestones rather than fake wrappers hidden behind the CLI.
+- v0.2: desktop host/renderer (Windows, macOS, Linux)
+- v0.3: native renderer and native capability bridge (Android, iOS)
+- v0.4: production data/auth/storage/payment adapters and deployment presets
