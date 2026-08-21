@@ -1,0 +1,27 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/reconciler" },
+    { "path": "./packages/dom" },
+    { "path": "./packages/compiler" },
+    { "path": "./packages/styles" },
+    { "path": "./packages/router" },
+    { "path": "./packages/ssr" },
+    { "path": "./packages/server" },
+    { "path": "./packages/rpc" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/registry" },
+    { "path": "./packages/cli" },
+    { "path": "./examples/counter" }
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@onestack/core"
+  }
+}

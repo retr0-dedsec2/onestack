@@ -1,0 +1,10 @@
+{
+  "name": "@onestack/registry",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "dependencies": { "@onestack/compiler": "workspace:*", "typescript": "^5.9.2" },
+  "scripts": { "build": "tsc -b", "test": "vitest run" }
+}
