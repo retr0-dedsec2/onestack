@@ -5,6 +5,7 @@ import {
   isKeyedList,
   isVNode,
   normalizeChildren,
+  untrack,
   type Child,
   type Key,
   type KeyedList,
@@ -150,7 +151,7 @@ function mountDynamic(read: () => Child, parent: Node, before: Node | null): Mou
 
 function updateKeyed<T>(list: KeyedList<T>, parent: Node, end: Node, records: KeyedRecord<T>[]) {
   const items = [...list.each()];
-  const previousItems = records.map((record) => record.item());
+  const previousItems = records.map((record) => untrack(record.item));
   const plan = reconcileKeyed(previousItems, items, list.key);
   const byKey = new Map(records.map((record) => [record.key, record]));
 
@@ -174,7 +175,8 @@ function updateKeyed<T>(list: KeyedList<T>, parent: Node, end: Node, records: Ke
 
     const [itemSignal, setItem] = createSignal(item);
     const [indexSignal, setIndex] = createSignal(index);
-    const mounted = mountChild(list.children(itemSignal, indexSignal), parent, end);
+    const child = untrack(() => list.children(itemSignal, indexSignal));
+    const mounted = mountChild(child, parent, end);
     return { key, item: itemSignal, setItem, index: indexSignal, setIndex, mounted };
   });
 
@@ -258,12 +260,9 @@ function findEndBoundary(start: Node, prefix: string, id: number) {
 
 function hydrateDynamic(read: () => Child, parent: Node, cursor: Node | null, state: HydrationState): MountResult {
   const id = state.boundaryId++;
-  let start = cursor;
-  let end = cursor && boundaryComment(cursor, "os:d", id) ? findEndBoundary(cursor, "os:d", id) : null;
-
-  if (!start || !end || !boundaryComment(start, "os:d", id)) {
-    return mountDynamic(read, parent, cursor);
-  }
+  const start = cursor;
+  const end = cursor && boundaryComment(cursor, "os:d", id) ? findEndBoundary(cursor, "os:d", id) : null;
+  if (!start || !end || !boundaryComment(start, "os:d", id)) return mountDynamic(read, parent, cursor);
 
   let current = hydrateChild(read(), parent, start.nextSibling, state);
   let firstRun = true;
@@ -274,10 +273,9 @@ function hydrateDynamic(read: () => Child, parent: Node, cursor: Node | null, st
       return;
     }
     current.dispose();
-    clearBetween(start!, end!);
+    clearBetween(start, end);
     current = mountChild(value, parent, end);
   });
-
   return { nodes: [start, end], dispose: () => { stop(); current.dispose(); } };
 }
 
@@ -293,7 +291,8 @@ function hydrateKeyedList<T>(list: KeyedList<T>, parent: Node, cursor: Node | nu
   items.forEach((item, index) => {
     const [itemSignal, setItem] = createSignal(item);
     const [indexSignal, setIndex] = createSignal(index);
-    const mounted = hydrateChild(list.children(itemSignal, indexSignal), parent, childCursor, state);
+    const child = untrack(() => list.children(itemSignal, indexSignal));
+    const mounted = hydrateChild(child, parent, childCursor, state);
     records.push({ key: list.key(item, index), item: itemSignal, setItem, index: indexSignal, setIndex, mounted });
     childCursor = lastNode(mounted)?.nextSibling ?? childCursor;
   });
@@ -320,7 +319,9 @@ function hydrateVNode(vnode: VNode, parent: Node, cursor: Node | null, state: Hy
   const id = state.elementId++;
   const element = state.root.querySelector<HTMLElement>(`[data-os-h=\"${id}\"]`);
   if (!element || element.parentNode !== parent || element.tagName.toLowerCase() !== vnode.type) {
-    return mountVNode(vnode, parent, cursor);
+    const mounted = mountVNode(vnode, parent, cursor);
+    if (cursor && cursor.parentNode === parent) parent.removeChild(cursor);
+    return mounted;
   }
 
   const disposeProps = bindProps(element, vnode.props as Record<string, unknown>);
@@ -353,6 +354,7 @@ function hydrateChild(child: Child, parent: Node, cursor: Node | null, state: Hy
   }
   const node = document.createTextNode(value);
   parent.insertBefore(node, cursor);
+  if (cursor && cursor.parentNode === parent) parent.removeChild(cursor);
   return { nodes: [node], dispose: () => {} };
 }
 
