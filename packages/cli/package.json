@@ -1,6 +1,6 @@
 {
   "name": "@onestack/cli",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,7 +8,10 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "dependencies": {
     "@onestack/compiler": "workspace:*",
-    "@onestack/registry": "workspace:*"
+    "@onestack/config": "workspace:*",
+    "@onestack/desktop": "workspace:*",
+    "@onestack/registry": "workspace:*",
+    "typescript": "^5.9.2"
   },
   "scripts": { "build": "tsc -b" }
 }

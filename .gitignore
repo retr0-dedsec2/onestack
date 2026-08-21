@@ -1,5 +1,7 @@
 node_modules/
 dist/
 coverage/
+.onestack/
+packages/desktop/native/target/
 .DS_Store
 *.log

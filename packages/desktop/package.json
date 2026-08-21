@@ -1,0 +1,26 @@
+{
+  "name": "@onestack/desktop",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.js"
+    }
+  },
+  "files": ["dist", "native"],
+  "dependencies": {
+    "@onestack/core": "workspace:*",
+    "@onestack/ui": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  }
+}

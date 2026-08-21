@@ -4,36 +4,137 @@ OneStack is an experimental universal full-stack TypeScript/JSX application fram
 
 > Write the product once. Choose where it runs.
 
-## v0.1 foundation
+## Current scope — v0.2
 
-The current branch contains a working framework foundation without React as the application runtime:
+OneStack now contains a working **web/full-stack core plus a hybrid desktop runtime** without React as the application runtime.
+
+### Core framework
 
 - custom JSX runtime and platform-agnostic VNodes
 - fine-grained signals, computed values, effects, batching and untracked reads
 - reactive DOM renderer
-- keyed `<For>` lists that preserve mounted nodes/state while updating item/index signals
-- deterministic SSR with client hydration markers and real `hydrate()` reuse
+- keyed `<For>` lists that preserve mounted nodes/state
+- deterministic SSR + client hydration
 - renderer-neutral Universal IR analysis
 - route and server manifest generation
-- token-aware portable styles and utility bridge
+- token-aware portable styles
 - file routing and dynamic/catch-all matching
 - server functions + transport-neutral typed RPC
 - universal UI primitives with semantic/a11y foundations
-- component portability analysis and React/shadcn-style source conversion
-- executable CLI with `dev`, `build`, `preview`, `check`, `add`, and `import`
+- React/shadcn-style component source conversion
+
+### Desktop v0.2
+
+- `@onestack/desktop`
+- Rust native host
+- system WebViews through WRY/Tao
+- Windows, macOS and Linux host targets
+- typed `onestack.desktop.v1` IPC
+- explicit native permissions
+- filesystem + portable paths
+- multiple windows
+- native file dialogs
+- clipboard
+- notifications
+- system tray
+- safe shell helpers
+- platform information
+- update checking/download/install primitives
+- Windows/macOS/Linux packaging flows
+- signing/notarization hooks
+
+The same OneStack components, signals, routes, styles and business logic are used by web and desktop applications.
 
 ## CLI
 
 ```bash
 onestack check
+
 onestack dev
+onestack dev --target desktop
+
 onestack build
-onestack preview
+onestack build --target desktop
+
+onestack preview --target desktop
+onestack release --target desktop
+
 onestack add button
 onestack import ./external/hero.tsx
 ```
 
-`check`, `dev`, and `build` generate `.onestack/routes.json` and `.onestack/server.json` from the source tree. `dev`, `build`, and `preview` delegate to the project's local Vite installation, so OneStack owns the application model/compiler/runtime while using Vite as the v0.1 bundling transport.
+`check`, `dev`, and `build` generate `.onestack/routes.json` and `.onestack/server.json`. Desktop commands additionally generate `.onestack/desktop.json` and `.onestack/permissions.json` for the native host.
+
+## Configuration
+
+```ts
+import { defineConfig } from "@onestack/config";
+
+export default defineConfig({
+  app: {
+    name: "My OneStack App",
+    version: "1.0.0",
+    identifier: "com.example.myapp",
+  },
+
+  desktop: {
+    width: 1200,
+    height: 800,
+    resizable: true,
+
+    permissions: {
+      filesystem: {
+        read: ["$documents", "$downloads"],
+        write: ["$documents"],
+      },
+      clipboard: true,
+      notifications: true,
+      window: true,
+      tray: true,
+      system: true,
+      shell: {
+        externalUrls: true,
+        revealFile: true,
+      },
+    },
+  },
+});
+```
+
+`onestack.desktop.json` remains supported for compatibility, but `onestack.config.ts` is the primary configuration format.
+
+## Desktop APIs
+
+```ts
+import {
+  filesystem,
+  window,
+  clipboard,
+  notifications,
+  dialog,
+  tray,
+  shell,
+  platform,
+  updater,
+} from "@onestack/desktop";
+
+const documents = await filesystem.paths.documents();
+await filesystem.writeText(`${documents}/hello.txt`, "Hello from OneStack");
+
+const settings = await window.create({
+  title: "Settings",
+  width: 900,
+  height: 650,
+  route: "/settings",
+});
+
+await notifications.show({
+  title: "OneStack",
+  body: "Desktop build complete",
+});
+```
+
+Every native command is dispatched through a known IPC namespace and checked against the generated capability manifest before execution.
 
 ## Keyed lists
 
@@ -51,13 +152,9 @@ const [users, setUsers] = createSignal([{ id: "a", name: "Ada" }]);
 
 ## SSR + hydration
 
-Server:
-
 ```ts
 const { html } = renderToString(<App />);
 ```
-
-Client:
 
 ```ts
 hydrate(<App />, document.querySelector("#app")!);
@@ -67,14 +164,33 @@ The client reuses SSR host elements and reactive boundaries instead of replacing
 
 ## Component import bridge
 
-`onestack import` performs a real source conversion for the portable subset: it removes React runtime imports, maps common shadcn UI primitives to `@onestack/ui`, rewrites `className` to `class`, and emits a portability report. Browser-only, Canvas/WebGL, raw-HTML, and dynamic-code patterns are flagged rather than silently pretending to be native-portable.
+`onestack import` performs source conversion for the portable subset: it removes React runtime imports, maps common shadcn UI primitives to `@onestack/ui`, rewrites `className` to `class`, and emits a portability report. Browser-only, Canvas/WebGL, raw-HTML and dynamic-code patterns are flagged rather than silently pretending to be universally portable.
 
-## What v0.1 means
+## Desktop packaging
 
-v0.1 is the usable **web/full-stack core**. It is not yet the final promise of one binary/runtime for every platform. Desktop and native mobile require their own host renderers, but they will consume the same VNode/component model, signals, Style IR, route/server manifests, and Universal IR rather than forcing application code to migrate to another framework.
+`onestack build --target desktop` always builds the native host and application assets for the current OS.
+
+Depending on the host platform and installed packaging tools, OneStack can produce:
+
+- Windows: `.exe`, optional `.msi` through WiX
+- macOS: `.app`, `.dmg`
+- Linux: executable bundle, `.deb`, optional AppImage
+
+`onestack release --target desktop` uses strict packaging/signing mode. Signing secrets are never stored in the repository; they are provided through environment variables / CI secrets.
+
+## Verification
+
+GitHub Actions validates:
+
+- unit tests
+- TypeScript typecheck
+- JavaScript/package build
+- Rust native host check
+- Rust release build on Ubuntu, Windows and macOS
 
 ## Platform roadmap
 
-- v0.2: desktop host/renderer (Windows, macOS, Linux)
-- v0.3: native renderer and native capability bridge (Android, iOS)
+- v0.1: web/full-stack core — shipped
+- v0.2: hybrid desktop runtime — Windows/macOS/Linux
+- v0.3: native mobile renderer + capability bridge — Android/iOS
 - v0.4: production data/auth/storage/payment adapters and deployment presets
