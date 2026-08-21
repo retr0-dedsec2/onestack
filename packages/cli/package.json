@@ -8,8 +8,10 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "dependencies": {
     "@onestack/compiler": "workspace:*",
+    "@onestack/config": "workspace:*",
     "@onestack/desktop": "workspace:*",
-    "@onestack/registry": "workspace:*"
+    "@onestack/registry": "workspace:*",
+    "typescript": "^5.9.2"
   },
   "scripts": { "build": "tsc -b" }
 }

@@ -21,6 +21,7 @@ export default defineConfig({
       { find: "@onestack/ui", replacement: source("ui") },
       { find: "@onestack/registry", replacement: source("registry") },
       { find: "@onestack/desktop", replacement: source("desktop") },
+      { find: "@onestack/config", replacement: source("config") },
       { find: "@onestack/cli", replacement: source("cli") }
     ]
   }
