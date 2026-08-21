@@ -11,33 +11,28 @@ export interface ReconcilePlan<T> {
   stableKeys: Set<Key>;
 }
 
-function assertUnique<T>(items: readonly T[], getKey: (item: T) => Key, label: string) {
+function assertUnique<T>(items: readonly T[], getKey: (item: T, index: number) => Key, label: string) {
   const keys = new Set<Key>();
-  for (const item of items) {
-    const key = getKey(item);
-    if (keys.has(key)) {
-      throw new Error(`OneStack reconciler: duplicate key \"${String(key)}\" in ${label}.`);
-    }
+  items.forEach((item, index) => {
+    const key = getKey(item, index);
+    if (keys.has(key)) throw new Error(`OneStack reconciler: duplicate key \"${String(key)}\" in ${label}.`);
     keys.add(key);
-  }
+  });
 }
 
 function longestIncreasingSubsequence(values: number[]): Set<number> {
   if (values.length === 0) return new Set();
-
   const predecessors = new Array<number>(values.length).fill(-1);
   const tails: number[] = [];
 
   for (let index = 0; index < values.length; index += 1) {
     let low = 0;
     let high = tails.length;
-
     while (low < high) {
       const middle = (low + high) >> 1;
       if (values[tails[middle]] < values[index]) low = middle + 1;
       else high = middle;
     }
-
     if (low > 0) predecessors[index] = tails[low - 1];
     tails[low] = index;
   }
@@ -54,19 +49,18 @@ function longestIncreasingSubsequence(values: number[]): Set<number> {
 export function reconcileKeyed<T>(
   previous: readonly T[],
   next: readonly T[],
-  getKey: (item: T) => Key,
+  getKey: (item: T, index: number) => Key,
 ): ReconcilePlan<T> {
   assertUnique(previous, getKey, "previous children");
   assertUnique(next, getKey, "next children");
 
   const previousIndex = new Map<Key, number>();
-  previous.forEach((item, index) => previousIndex.set(getKey(item), index));
+  previous.forEach((item, index) => previousIndex.set(getKey(item, index), index));
 
-  const nextKeys = new Set(next.map(getKey));
+  const nextKeys = new Set(next.map((item, index) => getKey(item, index)));
   const existing: Array<{ nextIndex: number; previousIndex: number; key: Key }> = [];
-
   next.forEach((item, nextIndex) => {
-    const key = getKey(item);
+    const key = getKey(item, nextIndex);
     const oldIndex = previousIndex.get(key);
     if (oldIndex !== undefined) existing.push({ nextIndex, previousIndex: oldIndex, key });
   });
@@ -78,27 +72,17 @@ export function reconcileKeyed<T>(
   });
 
   const operations: ReconcileOperation<T>[] = [];
-
   previous.forEach((item, from) => {
-    const key = getKey(item);
+    const key = getKey(item, from);
     if (!nextKeys.has(key)) operations.push({ type: "remove", key, from, item });
   });
 
   next.forEach((item, to) => {
-    const key = getKey(item);
+    const key = getKey(item, to);
     const from = previousIndex.get(key);
-
-    if (from === undefined) {
-      operations.push({ type: "insert", key, to, item });
-      return;
-    }
-
-    if (stableKeys.has(key)) {
-      operations.push({ type: "retain", key, from, to, item });
-      return;
-    }
-
-    operations.push({ type: "move", key, from, to, item });
+    if (from === undefined) operations.push({ type: "insert", key, to, item });
+    else if (stableKeys.has(key)) operations.push({ type: "retain", key, from, to, item });
+    else operations.push({ type: "move", key, from, to, item });
   });
 
   return { operations, stableKeys };

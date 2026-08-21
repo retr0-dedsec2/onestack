@@ -1,12 +1,22 @@
 export const Fragment = Symbol.for("onestack.fragment");
 
+export type Key = string | number;
+export type Accessor<T> = () => T;
 export type PrimitiveChild = string | number | bigint | boolean | null | undefined;
 export type Component<P = Record<string, unknown>> = (props: P & { children?: Child }) => Child;
 export type VNodeType = string | Component<any> | typeof Fragment;
 
+export interface KeyedList<T = unknown> {
+  readonly __onestackKeyedList: true;
+  readonly each: Accessor<readonly T[]>;
+  readonly key: (item: T, index: number) => Key;
+  readonly children: (item: Accessor<T>, index: Accessor<number>) => Child;
+}
+
 export type Child =
   | PrimitiveChild
   | VNode
+  | KeyedList<any>
   | Child[]
   | (() => Child);
 
@@ -14,8 +24,56 @@ export interface VNode<P = Record<string, unknown>> {
   readonly __onestackVNode: true;
   type: VNodeType;
   props: P;
-  key?: string | number;
+  key?: Key;
   children: Child[];
+}
+
+export interface ForProps<T> {
+  each: Accessor<readonly T[]>;
+  by?: keyof T | ((item: T, index: number) => Key);
+  children?: Child;
+}
+
+function renderFunction<T>(children: Child | undefined) {
+  const candidates = Array.isArray(children) ? children : [children];
+  const render = candidates.find((child) => typeof child === "function");
+  if (typeof render !== "function") {
+    throw new Error("OneStack <For>: expected a render function child.");
+  }
+  return render as (item: Accessor<T>, index: Accessor<number>) => Child;
+}
+
+function defaultKey<T>(item: T, index: number): Key {
+  if (typeof item === "string" || typeof item === "number") return item;
+  if (item && typeof item === "object") {
+    const record = item as Record<string, unknown>;
+    if (typeof record.id === "string" || typeof record.id === "number") return record.id;
+    if (typeof record.key === "string" || typeof record.key === "number") return record.key;
+  }
+  return index;
+}
+
+export function For<T>(props: ForProps<T>): KeyedList<T> {
+  const render = renderFunction<T>(props.children);
+  const by = props.by;
+  const key = typeof by === "function"
+    ? by
+    : by !== undefined
+      ? (item: T, index: number) => {
+          if (item && typeof item === "object") {
+            const value = (item as Record<PropertyKey, unknown>)[by as PropertyKey];
+            if (typeof value === "string" || typeof value === "number") return value;
+          }
+          return defaultKey(item, index);
+        }
+      : defaultKey;
+
+  return {
+    __onestackKeyedList: true,
+    each: props.each,
+    key,
+    children: render,
+  };
 }
 
 export function createVNode<P extends Record<string, unknown>>(
@@ -23,7 +81,7 @@ export function createVNode<P extends Record<string, unknown>>(
   props: P | null,
   ...children: Child[]
 ): VNode<P> {
-  const source = (props ?? {}) as P & { key?: string | number; children?: Child };
+  const source = (props ?? {}) as P & { key?: Key; children?: Child };
   const key = source.key;
   const propChildren = source.children;
   const normalizedChildren = children.length > 0
@@ -49,6 +107,10 @@ export function createVNode<P extends Record<string, unknown>>(
 
 export function isVNode(value: unknown): value is VNode {
   return Boolean(value && typeof value === "object" && (value as Partial<VNode>).__onestackVNode === true);
+}
+
+export function isKeyedList(value: unknown): value is KeyedList {
+  return Boolean(value && typeof value === "object" && (value as Partial<KeyedList>).__onestackKeyedList === true);
 }
 
 export function normalizeChildren(children: Child[]): Child[] {

@@ -4,10 +4,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "dependencies": {
-    "@onestack/core": "workspace:*"
+    "@onestack/core": "workspace:*",
+    "@onestack/reconciler": "workspace:*"
   },
-  "scripts": {
-    "build": "tsc -b"
-  }
+  "scripts": { "build": "tsc -b", "test": "vitest run" }
 }
