@@ -12,6 +12,7 @@
     { "path": "./packages/rpc" },
     { "path": "./packages/ui" },
     { "path": "./packages/registry" },
+    { "path": "./packages/desktop" },
     { "path": "./packages/cli" },
     { "path": "./examples/counter" }
   ],
