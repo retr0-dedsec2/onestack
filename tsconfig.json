@@ -2,7 +2,11 @@
   "files": [],
   "references": [
     { "path": "./packages/core" },
+    { "path": "./packages/reconciler" },
     { "path": "./packages/dom" },
+    { "path": "./packages/compiler" },
+    { "path": "./packages/styles" },
+    { "path": "./packages/router" },
     { "path": "./examples/counter" }
   ],
   "compilerOptions": {
