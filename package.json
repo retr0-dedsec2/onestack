@@ -4,9 +4,13 @@
   "private": true,
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "build": "pnpm -r build",
+    "bootstrap": "pnpm install --no-frozen-lockfile",
+    "prebuild": "pnpm bootstrap",
+    "build": "tsc -b --pretty false",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
+    "clean": "tsc -b --clean",
+    "rebuild": "pnpm clean && pnpm build",
     "desktop:check": "cargo check --manifest-path packages/desktop/native/Cargo.toml",
     "desktop:build": "cargo build --release --manifest-path packages/desktop/native/Cargo.toml"
   },
