@@ -14,12 +14,41 @@ interface TaggedValue {
   value: unknown;
 }
 
+function encodeRpc(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (value instanceof Date) {
+    return { __osType: "Date", value: value.toISOString() } satisfies TaggedValue;
+  }
+
+  if (value instanceof Error) {
+    return {
+      __osType: "Error",
+      value: { name: value.name, message: value.message },
+    } satisfies TaggedValue;
+  }
+
+  if (Array.isArray(value)) {
+    if (seen.has(value)) throw new TypeError("OneStack RPC cannot serialize circular arrays.");
+    seen.add(value);
+    const encoded = value.map((entry) => encodeRpc(entry, seen));
+    seen.delete(value);
+    return encoded;
+  }
+
+  if (value && typeof value === "object") {
+    const object = value as Record<string, unknown>;
+    if (seen.has(object)) throw new TypeError("OneStack RPC cannot serialize circular objects.");
+    seen.add(object);
+    const encoded: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(object)) encoded[key] = encodeRpc(entry, seen);
+    seen.delete(object);
+    return encoded;
+  }
+
+  return value;
+}
+
 export function serializeRpc(value: unknown): string {
-  return JSON.stringify(value, (_key, entry) => {
-    if (entry instanceof Date) return { __osType: "Date", value: entry.toISOString() } satisfies TaggedValue;
-    if (entry instanceof Error) return { __osType: "Error", value: { name: entry.name, message: entry.message } } satisfies TaggedValue;
-    return entry;
-  });
+  return JSON.stringify(encodeRpc(value));
 }
 
 export function deserializeRpc(payload: string): unknown {

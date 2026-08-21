@@ -30,7 +30,7 @@ class Observer {
   schedule() {
     if (this.disposed) return;
     pending.add(this);
-    if (batchDepth === 0) queueMicrotask(flush);
+    if (batchDepth === 0) flush();
   }
 
   detach() {
@@ -52,10 +52,16 @@ function flush() {
   if (flushQueued) return;
   flushQueued = true;
   queueMicrotask(() => {
-    flushQueued = false;
-    const work = [...pending];
-    pending.clear();
-    for (const observer of work) observer.run();
+    try {
+      while (pending.size > 0) {
+        const work = [...pending];
+        pending.clear();
+        for (const observer of work) observer.run();
+      }
+    } finally {
+      flushQueued = false;
+      if (pending.size > 0 && batchDepth === 0) flush();
+    }
   });
 }
 
