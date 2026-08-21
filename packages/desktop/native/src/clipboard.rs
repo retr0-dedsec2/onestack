@@ -1,5 +1,5 @@
 use arboard::Clipboard;
-use serde_json::{json, Value};
+use serde_json::Value;
 use crate::protocol::DesktopError;
 
 pub fn dispatch(command: &str, payload: &Value) -> Result<Value, DesktopError> {

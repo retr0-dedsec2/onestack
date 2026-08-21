@@ -54,10 +54,10 @@ fn main() -> anyhow::Result<()> {
             }
             Event::WindowEvent { window_id, event: WindowEvent::CloseRequested, .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "window".into(), name: "close-requested".into(), target: Some(id.clone()), payload: None }); },
             Event::WindowEvent { window_id, event: WindowEvent::Resized(size), .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "window".into(), name: "resize".into(), target: Some(id.clone()), payload: Some(json!({"width": size.width, "height": size.height})) }); },
-            Event::WindowEvent { window_id, event: WindowEvent::Focused(focused), .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: if focused { "focus".into() } else { "blur".into() }, target: Some(id), payload: None }); },
-            Event::WindowEvent { window_id, event: WindowEvent::ThemeChanged(theme), .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: "theme-change".into(), target: Some(id), payload: Some(json!({"theme": format!("{theme:?}").to_lowercase()})) }); },
-            Event::WindowEvent { window_id, event: WindowEvent::Suspended, .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: "suspend".into(), target: Some(id), payload: None }); },
-            Event::WindowEvent { window_id, event: WindowEvent::Resumed, .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: "resume".into(), target: Some(id), payload: None }); },
+            Event::WindowEvent { window_id, event: WindowEvent::Focused(focused), .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: if focused { "focus".into() } else { "blur".into() }, target: Some(id.clone()), payload: None }); },
+            Event::WindowEvent { window_id, event: WindowEvent::ThemeChanged(theme), .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: "theme-change".into(), target: Some(id.clone()), payload: Some(json!({"theme": format!("{theme:?}").to_lowercase()})) }); },
+            Event::WindowEvent { window_id, event: WindowEvent::Suspended, .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: "suspend".into(), target: Some(id.clone()), payload: None }); },
+            Event::WindowEvent { window_id, event: WindowEvent::Resumed, .. } => if let Some(id) = state.window_ids.get(&window_id).cloned() { emit_event(&state, &id, DesktopEvent { protocol: PROTOCOL, scope: "desktop".into(), name: "resume".into(), target: Some(id.clone()), payload: None }); },
             _ => {}
         }
     });
@@ -96,10 +96,7 @@ fn require(state: &HostState, capability: &str) -> Result<(), DesktopError> {
 fn dispatch(state: &mut HostState, target: &EventLoopWindowTarget<HostEvent>, proxy: &EventLoopProxy<HostEvent>, current_id: &str, request: &DesktopRequest) -> Result<Value, DesktopError> {
     match request.namespace.as_str() {
         "filesystem" => filesystem::dispatch(&request.command, &request.payload, &state.manifest),
-        "dialog" => {
-            require(state, if request.command == "saveFile" { "filesystem.write" } else { "filesystem.read" })?;
-            dialog::dispatch(&request.command, &request.payload)
-        }
+        "dialog" => { require(state, if request.command == "saveFile" { "filesystem.write" } else { "filesystem.read" })?; dialog::dispatch(&request.command, &request.payload) }
         "clipboard" => { require(state, if request.command == "readText" { "clipboard.read" } else { "clipboard.write" })?; clipboard::dispatch(&request.command, &request.payload) }
         "notifications" => { require(state, "notifications.show")?; notifications::dispatch(&request.command, &request.payload, proxy, current_id) }
         "shell" => { require(state, if request.command == "openExternal" { "shell.external" } else { "shell.revealFile" })?; shell::dispatch(&request.command, &request.payload) }
@@ -121,11 +118,7 @@ fn dispatch_tray(state: &mut HostState, command: &str, payload: &Value) -> Resul
     let id = payload.get("id").and_then(Value::as_str).ok_or_else(|| DesktopError::invalid("Missing tray id."))?.to_owned();
     if command == "remove" { state.tray_actions.retain(|_, (tray_id, _)| tray_id != &id); state.trays.remove(&id); return Ok(Value::Null); }
     let app_tray = state.trays.get(&id).ok_or_else(|| DesktopError::new("OS_DESKTOP_TRAY_NOT_FOUND", format!("Tray {id} does not exist.")))?;
-    match command {
-        "setMenu" => tray::set_menu(app_tray, payload, &mut state.tray_actions)?,
-        "setTooltip" => tray::set_tooltip(app_tray, payload)?,
-        _ => return Err(DesktopError::new("OS_DESKTOP_UNKNOWN_COMMAND", format!("Unknown tray command {command}."))),
-    }
+    match command { "setMenu" => tray::set_menu(app_tray, payload, &mut state.tray_actions)?, "setTooltip" => tray::set_tooltip(app_tray, payload)?, _ => return Err(DesktopError::new("OS_DESKTOP_UNKNOWN_COMMAND", format!("Unknown tray command {command}."))) }
     Ok(Value::Null)
 }
 

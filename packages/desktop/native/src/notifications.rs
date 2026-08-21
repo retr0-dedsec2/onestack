@@ -1,7 +1,10 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use notify_rust::Notification;
 use serde_json::{json, Value};
 use tao::event_loop::EventLoopProxy;
 use crate::{protocol::{DesktopError, DesktopEvent, PROTOCOL}, HostEvent};
+
+static NEXT_NOTIFICATION: AtomicU64 = AtomicU64::new(1);
 
 pub fn dispatch(command: &str, payload: &Value, proxy: &EventLoopProxy<HostEvent>, window_id: &str) -> Result<Value, DesktopError> {
     match command {
@@ -13,7 +16,7 @@ pub fn dispatch(command: &str, payload: &Value, proxy: &EventLoopProxy<HostEvent
             if let Some(icon) = payload.get("icon").and_then(Value::as_str) { notification.icon(icon); }
             if let Some(timeout) = payload.get("timeoutMs").and_then(Value::as_i64) { notification.timeout(timeout as i32); }
             let handle = notification.show().map_err(|error| DesktopError::new("OS_DESKTOP_NOTIFICATION_ERROR", error.to_string()))?;
-            let notification_id = handle.id().to_string();
+            let notification_id = format!("notification-{}", NEXT_NOTIFICATION.fetch_add(1, Ordering::Relaxed));
             let event_id = notification_id.clone();
             let proxy = proxy.clone(); let target = window_id.to_owned();
             std::thread::spawn(move || {
