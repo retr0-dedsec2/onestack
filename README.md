@@ -6,24 +6,32 @@ OneStack is an experimental universal full-stack TypeScript/JSX application fram
 
 ## v0.1 bootstrap
 
-OneStack is being built without React as the application runtime. The current branch now contains two implementation milestones.
+The current v0.1 branch now contains the first end-to-end framework foundations without React as the application runtime.
 
-### Runtime foundation
+### Runtime
 
-- custom JSX runtime
-- platform-agnostic VNode model
+- custom JSX runtime and platform-agnostic VNodes
 - fine-grained signals, computed values, effects, batching and untracked reads
-- reactive DOM renderer
-- functional components and fragments
-- reactive children and reactive DOM props
-- refs and DOM events
+- reactive DOM renderer, functional components, fragments, refs and events
+- keyed reconciliation planner using a longest-increasing-subsequence strategy
 
-### Framework foundation
+### Compiler and design
 
-- `@onestack/reconciler`: keyed reconciliation planner with stable subsequence detection
-- `@onestack/compiler`: TSX compilation through the OneStack JSX runtime plus Universal IR analysis and server-boundary discovery
-- `@onestack/styles`: portable token resolution, Style IR primitives, CSS serialization and a first Tailwind-like utility bridge
-- `@onestack/router`: file-route conversion, dynamic/catch-all matching and history-aware runtime router
+- TypeScript/TSX compiler entry point targeting the OneStack JSX runtime
+- renderer-neutral Universal IR analysis
+- server/client boundary discovery
+- portable Style IR primitives, theme tokens, CSS serialization and Tailwind-like utility conversion
+
+### Application framework
+
+- file-route conversion and dynamic/catch-all matching
+- history-aware router runtime
+- deterministic SSR markup and hydration markers
+- server-function registry
+- typed transport-neutral RPC stubs/handlers
+- first universal UI primitives (`View`, `Text`, `Button`, `Stack`, `Grid`, forms and more)
+- component registry plus portability analysis for imported JSX/components
+- executable `onestack` CLI foundation with `dev`, `build`, `preview`, `check`, `add` and `import` commands registered
 
 ## Run the current example
 
@@ -39,48 +47,42 @@ Then open the Vite URL shown in the terminal.
 ```tsx
 import { createComputed, createSignal } from "@onestack/core";
 import { render } from "@onestack/dom";
+import { Button, Stack, Text } from "@onestack/ui";
 
 function Counter() {
   const [count, setCount] = createSignal(0);
   const doubled = createComputed(() => count() * 2);
 
   return (
-    <main>
-      <h1>OneStack</h1>
-      <p>Count: {count}</p>
-      <p>Doubled: {doubled}</p>
-      <button onClick={() => setCount((value) => value + 1)}>Increment</button>
-    </main>
+    <Stack>
+      <Text>Count: {count}</Text>
+      <Text>Doubled: {doubled}</Text>
+      <Button onClick={() => setCount((value) => value + 1)}>Increment</Button>
+    </Stack>
   );
 }
 
 render(<Counter />, document.querySelector("#app")!);
 ```
 
-Signals can be passed directly as children; the DOM renderer binds them reactively without rerendering the whole component tree.
+## Current architecture
 
-## Compiler example
-
-```ts
-import { compileOneStack } from "@onestack/compiler";
-
-const result = compileOneStack(`
-  export const App = () => <Button>Build once</Button>
-`);
-
-console.log(result.ir);
-console.log(result.code);
+```text
+TS/TSX
+  |
+  v
+OneStack compiler -----> Universal IR
+  |                         |
+  |                         +--> DOM renderer
+  |                         +--> SSR renderer
+  |                         +--> future desktop renderer
+  |                         +--> future native renderer
+  |
+  +--> route manifest
+  +--> style IR
+  +--> server-function manifest --> RPC
 ```
 
-The Universal IR is intentionally renderer-neutral. Future DOM, SSR, desktop and native renderers will consume the same semantic component tree rather than making application code depend directly on browser APIs.
+## Next implementation work
 
-## Next milestones
-
-1. wire keyed reconciliation into dynamic DOM lists
-2. add compile-time static hoisting and richer server/client manifests
-3. build nested layouts and generated route manifests
-4. add SSR + deterministic hydration
-5. add server functions/RPC
-6. add universal UI primitives
-7. add CLI and component registry/import bridge
-8. add desktop and native renderers after the web/full-stack core stabilizes
+The foundations are now represented in code, but several pieces are intentionally not production-complete yet. Next work is to wire keyed reconciliation into live dynamic DOM lists, turn registered CLI commands into a real dev/build pipeline, generate route/server manifests from the compiler, add actual client hydration, and make the registry importer rewrite compatible 21st.dev/shadcn-style components into OneStack primitives.

@@ -7,6 +7,12 @@
     { "path": "./packages/compiler" },
     { "path": "./packages/styles" },
     { "path": "./packages/router" },
+    { "path": "./packages/ssr" },
+    { "path": "./packages/server" },
+    { "path": "./packages/rpc" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/registry" },
+    { "path": "./packages/cli" },
     { "path": "./examples/counter" }
   ],
   "compilerOptions": {
