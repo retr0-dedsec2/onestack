@@ -1,0 +1,17 @@
+{
+  "name": "@onestack/example-counter",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@onestack/core": "workspace:*",
+    "@onestack/dom": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^7.1.3"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  }
+}
