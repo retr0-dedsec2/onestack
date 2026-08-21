@@ -5,6 +5,6 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "dependencies": { "@onestack/compiler": "workspace:*" },
+  "dependencies": { "@onestack/compiler": "workspace:*", "typescript": "^5.9.2" },
   "scripts": { "build": "tsc -b", "test": "vitest run" }
 }

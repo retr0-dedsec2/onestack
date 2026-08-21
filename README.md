@@ -4,85 +4,71 @@ OneStack is an experimental universal full-stack TypeScript/JSX application fram
 
 > Write the product once. Choose where it runs.
 
-## v0.1 bootstrap
+## v0.1 foundation
 
-The current v0.1 branch now contains the first end-to-end framework foundations without React as the application runtime.
-
-### Runtime
+The current branch contains a working framework foundation without React as the application runtime:
 
 - custom JSX runtime and platform-agnostic VNodes
 - fine-grained signals, computed values, effects, batching and untracked reads
-- reactive DOM renderer, functional components, fragments, refs and events
-- keyed reconciliation planner using a longest-increasing-subsequence strategy
-
-### Compiler and design
-
-- TypeScript/TSX compiler entry point targeting the OneStack JSX runtime
+- reactive DOM renderer
+- keyed `<For>` lists that preserve mounted nodes/state while updating item/index signals
+- deterministic SSR with client hydration markers and real `hydrate()` reuse
 - renderer-neutral Universal IR analysis
-- server/client boundary discovery
-- portable Style IR primitives, theme tokens, CSS serialization and Tailwind-like utility conversion
+- route and server manifest generation
+- token-aware portable styles and utility bridge
+- file routing and dynamic/catch-all matching
+- server functions + transport-neutral typed RPC
+- universal UI primitives
+- component portability analysis and React/shadcn-style source conversion
+- executable CLI with `dev`, `build`, `preview`, `check`, `add`, and `import`
 
-### Application framework
-
-- file-route conversion and dynamic/catch-all matching
-- history-aware router runtime
-- deterministic SSR markup and hydration markers
-- server-function registry
-- typed transport-neutral RPC stubs/handlers
-- first universal UI primitives (`View`, `Text`, `Button`, `Stack`, `Grid`, forms and more)
-- component registry plus portability analysis for imported JSX/components
-- executable `onestack` CLI foundation with `dev`, `build`, `preview`, `check`, `add` and `import` commands registered
-
-## Run the current example
+## CLI
 
 ```bash
-pnpm install
-pnpm --filter @onestack/example-counter dev
+onestack check
+onestack dev
+onestack build
+onestack preview
+onestack add button
+onestack import ./external/hero.tsx
 ```
 
-Then open the Vite URL shown in the terminal.
+`check`, `dev`, and `build` generate `.onestack/routes.json` and `.onestack/server.json` from the source tree. `dev`, `build`, and `preview` delegate to the project's local Vite installation, so OneStack owns the application model/compiler/runtime while using Vite as the v0.1 bundling transport.
 
-## Example
+## Keyed lists
 
 ```tsx
-import { createComputed, createSignal } from "@onestack/core";
-import { render } from "@onestack/dom";
-import { Button, Stack, Text } from "@onestack/ui";
+import { For, createSignal } from "@onestack/core";
 
-function Counter() {
-  const [count, setCount] = createSignal(0);
-  const doubled = createComputed(() => count() * 2);
+const [users, setUsers] = createSignal([{ id: "a", name: "Ada" }]);
 
-  return (
-    <Stack>
-      <Text>Count: {count}</Text>
-      <Text>Doubled: {doubled}</Text>
-      <Button onClick={() => setCount((value) => value + 1)}>Increment</Button>
-    </Stack>
-  );
-}
-
-render(<Counter />, document.querySelector("#app")!);
+<ul>
+  <For each={users} by="id">
+    {(user) => <li>{() => user().name}</li>}
+  </For>
+</ul>
 ```
 
-## Current architecture
+## SSR + hydration
 
-```text
-TS/TSX
-  |
-  v
-OneStack compiler -----> Universal IR
-  |                         |
-  |                         +--> DOM renderer
-  |                         +--> SSR renderer
-  |                         +--> future desktop renderer
-  |                         +--> future native renderer
-  |
-  +--> route manifest
-  +--> style IR
-  +--> server-function manifest --> RPC
+Server:
+
+```ts
+const { html } = renderToString(<App />);
 ```
 
-## Next implementation work
+Client:
 
-The foundations are now represented in code, but several pieces are intentionally not production-complete yet. Next work is to wire keyed reconciliation into live dynamic DOM lists, turn registered CLI commands into a real dev/build pipeline, generate route/server manifests from the compiler, add actual client hydration, and make the registry importer rewrite compatible 21st.dev/shadcn-style components into OneStack primitives.
+```ts
+hydrate(<App />, document.querySelector("#app")!);
+```
+
+The client reuses SSR host elements and reactive boundaries instead of replacing the entire DOM tree.
+
+## Component import bridge
+
+`onestack import` performs a real source conversion for the portable subset: it removes React runtime imports, maps common shadcn UI primitives to `@onestack/ui`, rewrites `className` to `class`, and emits a portability report. Browser-only, Canvas/WebGL, raw-HTML, and dynamic-code patterns are flagged rather than silently pretending to be native-portable.
+
+## Platform roadmap
+
+The v0.1 target is a stable web/full-stack core. Desktop and native mobile renderers will consume the same component model, signals, Style IR, route/server manifests, and Universal IR; they are separate renderer/host milestones rather than fake wrappers hidden behind the CLI.
