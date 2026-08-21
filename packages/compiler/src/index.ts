@@ -16,11 +16,14 @@ function isComponentName(name: string) { const first = name[0]; return first ? f
 function readProps(attributes: ts.JsxAttributes, sourceFile: ts.SourceFile): UniversalIRProp[] {
   return attributes.properties.map((attribute) => {
     if (ts.isJsxSpreadAttribute(attribute)) return { name: "...", value: attribute.expression.getText(sourceFile), static: false };
-    if (!attribute.initializer) return { name: attribute.name.getText(sourceFile), value: null, static: true };
-    if (ts.isStringLiteral(attribute.initializer)) return { name: attribute.name.getText(sourceFile), value: attribute.initializer.text, static: true };
-    const expression = attribute.initializer.expression;
+    const name = attribute.name.getText(sourceFile);
+    const initializer = attribute.initializer;
+    if (!initializer) return { name, value: null, static: true };
+    if (ts.isStringLiteral(initializer)) return { name, value: initializer.text, static: true };
+    if (!ts.isJsxExpression(initializer)) return { name, value: initializer.getText(sourceFile), static: false };
+    const expression = initializer.expression;
     const staticValue = Boolean(expression && (ts.isStringLiteral(expression) || ts.isNumericLiteral(expression) || expression.kind === ts.SyntaxKind.TrueKeyword || expression.kind === ts.SyntaxKind.FalseKeyword));
-    return { name: attribute.name.getText(sourceFile), value: expression?.getText(sourceFile) ?? null, static: staticValue };
+    return { name, value: expression?.getText(sourceFile) ?? null, static: staticValue };
   });
 }
 function analyzeJsx(node: ts.Node, sourceFile: ts.SourceFile, nextId: () => number): UniversalIRNode | null {

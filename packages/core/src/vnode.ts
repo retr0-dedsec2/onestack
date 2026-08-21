@@ -10,15 +10,11 @@ export interface KeyedList<T = unknown> {
   readonly __onestackKeyedList: true;
   readonly each: Accessor<readonly T[]>;
   readonly key: (item: T, index: number) => Key;
-  readonly children: (item: Accessor<T>, index: Accessor<number>) => Child;
+  readonly children: ForRenderer<T>;
 }
 
-export type Child =
-  | PrimitiveChild
-  | VNode
-  | KeyedList<any>
-  | Child[]
-  | (() => Child);
+export type Child = PrimitiveChild | VNode | KeyedList<any> | Child[] | (() => Child);
+export type ForRenderer<T> = (item: Accessor<T>, index: Accessor<number>) => Child;
 
 export interface VNode<P = Record<string, unknown>> {
   readonly __onestackVNode: true;
@@ -31,16 +27,14 @@ export interface VNode<P = Record<string, unknown>> {
 export interface ForProps<T> {
   each: Accessor<readonly T[]>;
   by?: keyof T | ((item: T, index: number) => Key);
-  children?: Child;
+  children?: ForRenderer<T> | ForRenderer<T>[];
 }
 
-function renderFunction<T>(children: Child | undefined) {
+function renderFunction<T>(children: ForProps<T>["children"]): ForRenderer<T> {
   const candidates = Array.isArray(children) ? children : [children];
-  const render = candidates.find((child) => typeof child === "function");
-  if (typeof render !== "function") {
-    throw new Error("OneStack <For>: expected a render function child.");
-  }
-  return render as (item: Accessor<T>, index: Accessor<number>) => Child;
+  const render = candidates.find((child): child is ForRenderer<T> => typeof child === "function");
+  if (!render) throw new Error("OneStack <For>: expected a render function child.");
+  return render;
 }
 
 function defaultKey<T>(item: T, index: number): Key {
@@ -68,12 +62,7 @@ export function For<T>(props: ForProps<T>): KeyedList<T> {
         }
       : defaultKey;
 
-  return {
-    __onestackKeyedList: true,
-    each: props.each,
-    key,
-    children: render,
-  };
+  return { __onestackKeyedList: true, each: props.each, key, children: render };
 }
 
 export function createVNode<P extends Record<string, unknown>>(
@@ -96,13 +85,7 @@ export function createVNode<P extends Record<string, unknown>>(
   delete cleanProps.key;
   delete cleanProps.children;
 
-  return {
-    __onestackVNode: true,
-    type,
-    props: cleanProps as P,
-    key,
-    children: normalizedChildren,
-  };
+  return { __onestackVNode: true, type, props: cleanProps as P, key, children: normalizedChildren };
 }
 
 export function isVNode(value: unknown): value is VNode {

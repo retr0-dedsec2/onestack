@@ -100,10 +100,10 @@ export function createSignal<T>(initial: T): [Signal<T>, Setter<T>] {
   return [read, write];
 }
 
-export function createEffect(effect: () => void | Cleanup): Cleanup {
+export function createEffect(effect: () => unknown): Cleanup {
   const observer = new Observer(() => {
     const cleanup = effect();
-    if (typeof cleanup === "function") observer.cleanup = cleanup;
+    if (typeof cleanup === "function") observer.cleanup = cleanup as Cleanup;
   });
   observer.run();
   return () => observer.dispose();

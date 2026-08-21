@@ -9,6 +9,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
