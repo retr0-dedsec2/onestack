@@ -20,3 +20,25 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         CODE_SIGNING_ALLOWED: NO
+  OneStackUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: OneStackUITests.swift
+    dependencies:
+      - target: OneStack
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.onestack.uitests
+        TEST_TARGET_NAME: OneStack
+        SWIFT_VERSION: '5.0'
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  OneStack:
+    build:
+      targets:
+        OneStack: all
+    test:
+      targets:
+        - OneStackUITests

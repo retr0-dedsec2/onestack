@@ -131,9 +131,7 @@ jobs:
             adb install examples/universal/.onestack/mobile/android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -W -n dev.onestack.universal/dev.onestack.runtime.MainActivity
             sleep 10
-            adb shell uiautomator dump /sdcard/window.xml
-            adb pull /sdcard/window.xml /tmp/onestack-window.xml
-            grep -q 'OneStack Universal' /tmp/onestack-window.xml
+            python3 scripts/smoke-android.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -162,6 +160,7 @@ jobs:
           xcrun simctl launch "$DEVICE" dev.onestack.universal
           sleep 10
           xcrun simctl io "$DEVICE" screenshot /tmp/onestack-ios.png
+          xcodebuild -project examples/universal/.onestack/mobile/ios/OneStack.xcodeproj -scheme OneStack -destination "id=$DEVICE" -derivedDataPath examples/universal/.onestack/mobile/ios/build CODE_SIGNING_ALLOWED=NO test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
