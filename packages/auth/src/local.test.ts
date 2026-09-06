@@ -20,3 +20,9 @@ it('persists users, isolates sessions, revokes logout and consumes magic links o
     await expect(adapter.consumeMagicLink(magic)).rejects.toThrow();
   } finally { await data.close(); }
 });
+it('rejects expired or malformed session expiry in guards', async () => {
+  for (const expiresAt of ['not-a-date', '2000-01-01T00:00:00Z']) {
+    const auth = createAuth({ provider: 'test', getSession: async () => ({ user: { id: 'test' }, expiresAt }), signIn: async () => { throw new Error('unused'); }, signOut: async () => {} });
+    await expect(auth.requireSession()).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
+  }
+});

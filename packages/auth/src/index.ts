@@ -1,4 +1,4 @@
-import { providerBoundary } from "@onestack/errors";
+import { providerBoundary, OneStackError } from "@onestack/errors";
 export interface AuthUser { id: string; email?: string; name?: string; metadata?: Record<string, unknown>; }
 export interface AuthSession { user: AuthUser; expiresAt?: string; token?: string; }
 export interface SignInInput { email?: string; password?: string; provider?: string; redirectTo?: string; }
@@ -17,7 +17,7 @@ export class AuthClient {
   getSession() { return this.adapter.getSession(); }
   signIn(input: SignInInput) { return this.adapter.signIn(input); }
   signOut() { return this.adapter.signOut(); }
-  async requireSession(): Promise<AuthSession> { const session = await this.getSession(); if (!session || (session.expiresAt && Date.parse(session.expiresAt) <= Date.now())) throw new Error("OneStack auth: authentication required."); return session; }
+  async requireSession(): Promise<AuthSession> { const session = await this.getSession(); if (!session || (session.expiresAt && !(Date.parse(session.expiresAt) > Date.now()))) throw new OneStackError({ code: "AUTH_REQUIRED", provider: this.adapter.provider, message: "OneStack auth: authentication required." }); return session; }
 }
 export function createAuth(adapter: AuthAdapter) { return new AuthClient(adapter); }
 export async function authGuard(auth: AuthClient) { return auth.requireSession(); }
