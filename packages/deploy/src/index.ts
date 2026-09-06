@@ -9,3 +9,5 @@ export const presets: Record<DeployProvider, DeploymentPreset> = {
   static: { provider: "static", buildTarget: "static", outputDirectory: "dist" },
 };
 export function getDeploymentPreset(provider: DeployProvider) { return presets[provider]; }
+
+export { writeDeployment } from "./output.js";

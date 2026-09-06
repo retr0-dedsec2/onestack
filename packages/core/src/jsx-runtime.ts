@@ -12,6 +12,7 @@ export const jsxs = jsx;
 export const jsxDEV = jsx;
 
 export namespace JSX {
+  export type ElementType = string | import("./vnode.js").Component<any>;
   export type Element = import("./vnode.js").VNode | import("./vnode.js").KeyedList<any>;
   export interface IntrinsicElements {
     [element: string]: Record<string, unknown> & { children?: Child };

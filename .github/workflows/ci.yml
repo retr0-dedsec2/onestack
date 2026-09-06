@@ -18,10 +18,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm build
+      - run: pnpm --filter @onestack/example-counter build
+      - run: pnpm --filter @onestack/example-universal build
 
   fresh-windows-build:
     name: Fresh Windows workspace build
@@ -36,7 +38,9 @@ jobs:
           node-version: 22
       - name: Build from a clean checkout
         shell: pwsh
-        run: pnpm build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
 
   desktop-native:
     name: Desktop host (${{ matrix.os }})
@@ -57,3 +61,97 @@ jobs:
         run: cargo check --manifest-path packages/desktop/native/Cargo.toml
       - name: Build native host
         run: cargo build --release --manifest-path packages/desktop/native/Cargo.toml
+
+  service-contracts:
+    name: PostgreSQL and S3 contracts
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: onestack
+          POSTGRES_USER: onestack
+          POSTGRES_DB: onestack
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      s3:
+        image: motoserver/moto:5.1.11
+        ports: ['5000:5000']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+        env:
+          TEST_DATABASE_URL: postgres://onestack:onestack@127.0.0.1:5432/onestack
+          TEST_S3_ENDPOINT: http://127.0.0.1:5000
+
+  android:
+    name: Android native build and launch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @onestack/example-universal build:android
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          script: |
+            adb install examples/universal/.onestack/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell am start -W -n dev.onestack.universal/dev.onestack.runtime.MainActivity
+            sleep 10
+            adb shell uiautomator dump /sdcard/window.xml
+            adb pull /sdcard/window.xml /tmp/onestack-window.xml
+            grep -q 'OneStack Universal' /tmp/onestack-window.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-debug
+          path: examples/universal/.onestack/mobile/android/app/build/outputs/apk/debug/*.apk
+
+  ios:
+    name: iOS native build and launch
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: brew install xcodegen
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @onestack/example-universal build:ios
+      - name: Launch on simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for values in d["devices"].values() for x in values if x["name"].startswith("iPhone")))')
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" examples/universal/.onestack/mobile/ios/build/Build/Products/Debug-iphonesimulator/OneStack.app
+          xcrun simctl launch "$DEVICE" dev.onestack.universal
+          sleep 10
+          xcrun simctl io "$DEVICE" screenshot /tmp/onestack-ios.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-screenshot
+          path: /tmp/onestack-ios.png

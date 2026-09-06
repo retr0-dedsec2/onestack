@@ -4,14 +4,25 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": { "onestack": "./dist/bin.js" },
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "bin": {
+    "onestack": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "dependencies": {
     "@onestack/compiler": "workspace:*",
     "@onestack/config": "workspace:*",
     "@onestack/desktop": "workspace:*",
     "@onestack/registry": "workspace:*",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "@onestack/deploy": "workspace:*",
+    "esbuild": "^0.25.9"
   },
-  "scripts": { "build": "tsc -b" }
+  "scripts": {
+    "build": "tsc -b"
+  }
 }

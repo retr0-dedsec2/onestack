@@ -1,28 +1,75 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/reconciler" },
-    { "path": "./packages/dom" },
-    { "path": "./packages/compiler" },
-    { "path": "./packages/styles" },
-    { "path": "./packages/router" },
-    { "path": "./packages/ssr" },
-    { "path": "./packages/server" },
-    { "path": "./packages/rpc" },
-    { "path": "./packages/ui" },
-    { "path": "./packages/registry" },
-    { "path": "./packages/desktop" },
-    { "path": "./packages/mobile" },
-    { "path": "./packages/errors" },
-    { "path": "./packages/data" },
-    { "path": "./packages/auth" },
-    { "path": "./packages/storage" },
-    { "path": "./packages/payments" },
-    { "path": "./packages/deploy" },
-    { "path": "./packages/config" },
-    { "path": "./packages/cli" },
-    { "path": "./examples/counter" }
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/reconciler"
+    },
+    {
+      "path": "./packages/dom"
+    },
+    {
+      "path": "./packages/compiler"
+    },
+    {
+      "path": "./packages/styles"
+    },
+    {
+      "path": "./packages/router"
+    },
+    {
+      "path": "./packages/ssr"
+    },
+    {
+      "path": "./packages/server"
+    },
+    {
+      "path": "./packages/rpc"
+    },
+    {
+      "path": "./packages/ui"
+    },
+    {
+      "path": "./packages/registry"
+    },
+    {
+      "path": "./packages/desktop"
+    },
+    {
+      "path": "./packages/mobile"
+    },
+    {
+      "path": "./packages/errors"
+    },
+    {
+      "path": "./packages/data"
+    },
+    {
+      "path": "./packages/auth"
+    },
+    {
+      "path": "./packages/storage"
+    },
+    {
+      "path": "./packages/payments"
+    },
+    {
+      "path": "./packages/deploy"
+    },
+    {
+      "path": "./packages/config"
+    },
+    {
+      "path": "./packages/cli"
+    },
+    {
+      "path": "./examples/counter"
+    },
+    {
+      "path": "./examples/universal"
+    }
   ],
   "compilerOptions": {
     "target": "ES2022",

@@ -1,0 +1,22 @@
+name: OneStack
+options:
+  bundleIdPrefix: dev.onestack
+  deploymentTarget:
+    iOS: '15.0'
+targets:
+  OneStack:
+    type: application
+    platform: iOS
+    sources:
+      - path: OneStack.swift
+      - path: app.js
+        buildPhase: resources
+      - path: manifest.json
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.onestack.example
+        SWIFT_VERSION: '5.0'
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        CODE_SIGNING_ALLOWED: NO

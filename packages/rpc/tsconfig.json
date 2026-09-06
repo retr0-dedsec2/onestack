@@ -11,6 +11,16 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "../server" }],
-  "include": ["src"]
+  "references": [
+    {
+      "path": "../server"
+    }
+  ],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
 }

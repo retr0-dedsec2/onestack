@@ -8,9 +8,12 @@ export interface MobileCapabilities { filesystem?: boolean; camera?: boolean; ph
 export interface MobileRuntimeOptions { platform: MobilePlatform; capabilities?: MobileCapabilities; bridge: MobileBridge; allowWebViewFallback?: boolean; }
 export class MobileRuntime {
   readonly capabilities: MobileCapabilities;
-  constructor(readonly options: MobileRuntimeOptions) { this.capabilities = options.capabilities ?? {}; }
+  constructor(readonly options: MobileRuntimeOptions) { this.capabilities = Object.freeze({ ...options.capabilities }); }
   assertCapability(name: keyof MobileCapabilities) { if (!this.capabilities[name]) throw new Error(`OneStack mobile: capability ${name} is not declared.`); }
-  invoke<T = unknown>(capability: keyof MobileCapabilities, namespace: string, method: string, ...args: unknown[]) { this.assertCapability(capability); return this.options.bridge.invoke<T>(namespace, method, ...args); }
-  render(node: MobileNode): MobileNode { if (node.type === "WebView" && !this.options.allowWebViewFallback) throw new Error("OneStack mobile: WebView fallback is disabled."); return node; }
+  invoke<T = unknown>(capability: keyof MobileCapabilities, namespace: string, method: string, ...args: unknown[]) { this.assertCapability(capability); if (namespace !== capability) throw new Error("Capability namespace mismatch"); return this.options.bridge.invoke<T>(namespace, method, ...args); }
+  render(node: MobileNode): MobileNode { if (node.type === "WebView" && !this.options.allowWebViewFallback) throw new Error("OneStack mobile: WebView fallback is disabled."); if (Array.isArray(node.children)) node.children.forEach(child => this.render(child)); return node; }
 }
 export function createMobileRuntime(options: MobileRuntimeOptions) { return new MobileRuntime(options); }
+
+export { mountMobile, createNativeHost } from "./renderer.js";
+export { createMobileBridge } from "./bridge.js";

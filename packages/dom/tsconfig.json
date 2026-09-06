@@ -10,10 +10,26 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "jsx": "react-jsx",
     "jsxImportSource": "@onestack/core"
   },
-  "references": [{ "path": "../core" }, { "path": "../reconciler" }],
-  "include": ["src"]
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../reconciler"
+    }
+  ],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
 }

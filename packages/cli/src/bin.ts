@@ -5,6 +5,9 @@ import { spawnSync } from "node:child_process";
 import { generateRouteManifest, generateServerManifest, type SourceModule } from "@onestack/compiler";
 import { convertComponentSource } from "@onestack/registry";
 import { buildDesktop, previewDesktop, runDesktopDev, writeDesktopManifest } from "./desktop.js";
+import { secureViteArgs } from "./vite.js";
+import { runMobile } from "./mobile.js";
+import { runServices } from "./services.js";
 import { helpText, parseCli } from "./index.js";
 
 function walk(directory: string): string[] {
@@ -44,6 +47,16 @@ const root = process.cwd();
 if (parsed.command === "help") { console.log(helpText()); process.exit(0); }
 if (!existsSync(resolve(root, "package.json"))) { console.error("OneStack: package.json not found in the current directory."); process.exit(1); }
 
+if (["db", "auth", "deploy"].includes(parsed.command)) { await runServices(root, parsed); process.exit(0); }
+const target = String(parsed.flags.target ?? "web");
+if (!["web", "desktop", "android", "ios"].includes(target)) throw new Error(`Unknown target: ${target}`);
+if (target === "android" || target === "ios") {
+  if (!["build", "dev", "run", "release", "check"].includes(parsed.command)) throw new Error(`Unsupported mobile command: ${parsed.command}`);
+  await runMobile(root, target, parsed.command, parsed.command === "check" ? { ...parsed.flags, "generate-only": true } : parsed.flags);
+  process.exit(0);
+}
+if (parsed.command === "run") throw new Error("run requires --target android|ios");
+
 if (parsed.command === "check") {
   const manifests = writeManifests(root); writeDesktopManifest(root);
   if (!existsSync(resolve(root, "src"))) { console.error("OneStack check failed: src/ directory is missing."); process.exit(1); }
@@ -52,7 +65,7 @@ if (parsed.command === "check") {
 
 if (parsed.command === "dev" || parsed.command === "build" || parsed.command === "preview" || parsed.command === "release") {
   const target = String(parsed.flags.target ?? "web");
-  const args = forwardedFlags(parsed.flags);
+  const args = secureViteArgs(root, forwardedFlags(parsed.flags));
   if (target === "desktop") {
     if (parsed.command !== "preview") writeManifests(root);
     if (parsed.command === "dev") runDesktopDev(root, args);
