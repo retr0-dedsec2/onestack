@@ -31,3 +31,10 @@ it('preserves component-local signals across native updates', async () => {
   for (let i = 0; i < 2; i++) { emit(String((tree!.children as MobileNode[])[0].props!.onClick), null); await Promise.resolve(); }
   expect(mounts).toBe(1); expect(JSON.stringify(tree!)).toContain('"children":"2"'); dispose();
 });
+it('replaces dynamic component branches when navigating between pages', async () => {
+  const [page, navigate] = createSignal('notes'); let tree: MobileNode;
+  const Panel = (props: any) => createVNode('div', {}, props.children);
+  const dispose = mountMobile(() => createVNode(Panel, {}, page()), { render: node => { tree = node; }, subscribe: () => () => {} });
+  expect(JSON.stringify(tree!)).toContain('notes'); navigate('billing'); await Promise.resolve();
+  expect(JSON.stringify(tree!)).toContain('billing'); expect(JSON.stringify(tree!)).not.toContain('notes'); dispose();
+});

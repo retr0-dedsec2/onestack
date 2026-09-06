@@ -41,8 +41,8 @@ export function createMemoryAdapter(seed: Record<string, Row[]> = {}): DataAdapt
       for (const order of [...(options.orderBy ?? [])].reverse()) rows.sort((a, b) => (typeof a[order.field] === "number" && typeof b[order.field] === "number" ? (a[order.field] as number) - (b[order.field] as number) : String(a[order.field] ?? "").localeCompare(String(b[order.field] ?? ""))) * (order.direction === "desc" ? -1 : 1));
       const start = options.offset ?? 0; return rows.slice(start, options.limit === undefined ? undefined : start + options.limit) as T[];
     },
-    async insert(table, values) { const rows = (Array.isArray(values) ? values : [values]).map((row) => structuredClone(row)); store.set(table, [...(store.get(table) ?? []), ...rows]); return rows; },
-    async update<T extends Row>(table: string, values: Partial<T>, options: QueryOptions = {}) { const rows = store.get(table) ?? []; const updated: Row[] = []; store.set(table, rows.map((row) => matches(row, options.where) ? (updated.push({ ...row, ...values }), { ...row, ...values }) : row)); return updated as T[]; },
+    async insert(table, values) { const rows = (Array.isArray(values) ? values : [values]).map((row) => structuredClone(row)); store.set(table, [...(store.get(table) ?? []), ...rows]); return structuredClone(rows); },
+    async update<T extends Row>(table: string, values: Partial<T>, options: QueryOptions = {}) { const rows = store.get(table) ?? []; const updated: Row[] = []; store.set(table, rows.map((row) => matches(row, options.where) ? (updated.push({ ...row, ...values }), { ...row, ...values }) : row)); return structuredClone(updated) as T[]; },
     async delete(table, options = {}) { const rows = store.get(table) ?? []; const kept = rows.filter((row) => !matches(row, options.where)); store.set(table, kept); return rows.length - kept.length; },
     async transaction(fn) { const snapshot = new Map([...store].map(([key, rows]) => [key, rows.map((row) => structuredClone(row))])); try { return await fn(adapter); } catch (error) { store.clear(); snapshot.forEach((rows, key) => store.set(key, rows)); throw error; } },
   };

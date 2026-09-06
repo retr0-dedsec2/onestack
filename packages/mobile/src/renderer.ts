@@ -7,7 +7,7 @@ export interface MobileHost { render(node: MobileNode): void; subscribe(handler:
 
 /** Snapshot renderer: portable VNodes and reactive accessors become native trees. */
 export function mountMobile(view: Child, host: MobileHost, options: { allowWebViewFallback?: boolean } = {}) {
-  const components = new Map<string, { type: unknown; value: Child }>();
+  const components = new Map<string, { node: unknown; value: Child }>();
   let handlers = new Map<string, (event: unknown) => void>();
   const unsubscribe = host.subscribe((id, value) => handlers.get(id)?.({ target: { value, checked: value }, value, nativeEvent: value }));
   const dispose = createEffect(() => {
@@ -22,9 +22,9 @@ export function mountMobile(view: Child, host: MobileHost, options: { allowWebVi
       if (typeof child.type === 'function') {
         visited.add(path);
         let cached = components.get(path);
-        if (!cached || cached.type !== child.type) {
+        if (!cached || cached.node !== child) {
           const component = child.type;
-          cached = { type: component, value: untrack(() => component({ ...child.props, children: child.children })) };
+          cached = { node: child, value: untrack(() => component({ ...child.props, children: child.children })) };
           components.set(path, cached);
         }
         return convert(cached.value, path + '/component');
