@@ -1,7 +1,6 @@
 import { mountMobile, createNativeHost, createMobileBridge } from '@onestack/mobile';
 import { createApp } from './app.js';
-// Set to your deployed HTTPS backend. The native bundle contains no provider secrets.
-const apiOrigin = 'https://your-onestack-backend.example';
+import { apiOrigin } from './origin.js';
 const scope = globalThis as any;
 const bridge = createMobileBridge(request => {
   const message = { type: 'invoke', request };

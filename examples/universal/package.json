@@ -1,6 +1,31 @@
 {
-  "name": "@onestack/example-universal", "version": "0.4.0", "private": true, "type": "module",
-  "scripts": { "dev": "onestack dev", "build": "onestack build", "build:android": "onestack build --target android", "build:ios": "onestack build --target ios", "deploy:node": "onestack deploy --provider node" },
-  "dependencies": { "@onestack/core": "workspace:*", "@onestack/dom": "workspace:*", "@onestack/ui": "workspace:*", "@onestack/router": "workspace:*", "@onestack/mobile": "workspace:*", "@onestack/data": "workspace:*", "@onestack/auth": "workspace:*", "@onestack/storage": "workspace:*", "@onestack/payments": "workspace:*", "@onestack/server": "workspace:*", "@onestack/config": "workspace:*", "@onestack/cli": "workspace:*" },
-  "devDependencies": { "vite": "^7.1.3" }
+  "name": "@onestack/example-universal",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "onestack dev",
+    "build": "onestack build",
+    "build:android": "onestack build --target android",
+    "build:ios": "onestack build --target ios",
+    "deploy:node": "onestack deploy --provider node"
+  },
+  "dependencies": {
+    "@onestack/core": "workspace:*",
+    "@onestack/dom": "workspace:*",
+    "@onestack/ui": "workspace:*",
+    "@onestack/router": "workspace:*",
+    "@onestack/mobile": "workspace:*",
+    "@onestack/data": "workspace:*",
+    "@onestack/auth": "workspace:*",
+    "@onestack/storage": "workspace:*",
+    "@onestack/payments": "workspace:*",
+    "@onestack/server": "workspace:*",
+    "@onestack/config": "workspace:*",
+    "@onestack/cli": "workspace:*",
+    "@onestack/rpc": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^7.1.3"
+  }
 }

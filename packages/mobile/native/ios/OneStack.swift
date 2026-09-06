@@ -122,13 +122,51 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
         if let value = node["children"] as? String { return value }
         return (node["children"] as? [[String: Any]] ?? []).map { text($0) }.joined()
     }
+    private func color(_ value: Any?) -> UIColor? {
+        guard let hex = value as? String, hex.hasPrefix("#"), hex.count == 7,
+              let rgb = UInt32(hex.dropFirst(), radix: 16) else { return nil }
+        return UIColor(red: CGFloat((rgb >> 16) & 255) / 255, green: CGFloat((rgb >> 8) & 255) / 255, blue: CGFloat(rgb & 255) / 255, alpha: 1)
+    }
     private func render(_ node: [String: Any]) throws -> UIView {
+        let result = try renderContent(node)
+        let props = node["props"] as? [String: Any] ?? [:], style = props["style"] as? [String: Any] ?? [:]
+        func number(_ key: String, _ fallback: CGFloat = 0) -> CGFloat { (style[key] as? NSNumber).map { CGFloat($0.doubleValue) } ?? fallback }
+        if let background = color(style["backgroundColor"]) { result.backgroundColor = background }
+        result.layer.cornerRadius = number("borderRadius")
+        result.layer.borderWidth = number("borderWidth")
+        result.layer.borderColor = color(style["borderColor"])?.cgColor
+        result.alpha = number("opacity", 1)
+        if let control = result as? UIControl { control.isEnabled = props["disabled"] as? Bool != true }
+        if style["minHeight"] != nil { result.heightAnchor.constraint(greaterThanOrEqualToConstant: number("minHeight")).isActive = true }
+        if let stack = result as? UIStackView {
+            stack.spacing = number("gap", 8)
+            let padding = number("padding")
+            stack.isLayoutMarginsRelativeArrangement = true
+            stack.layoutMargins = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
+        }
+        let font = UIFont.systemFont(ofSize: number("fontSize", 16), weight: number("fontWeight", 400) >= 600 ? .bold : .regular)
+        if let label = result as? UILabel { label.font = font; if let c = color(style["color"]) { label.textColor = c } }
+        if let input = result as? UITextField { input.font = font; if let c = color(style["color"]) { input.textColor = c } }
+        if let button = result as? UIButton {
+            button.titleLabel?.font = font
+            if let c = color(style["color"]) { button.setTitleColor(c, for: .normal) }
+            let padding = number("padding"); button.contentEdgeInsets = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
+        }
+        return result
+    }
+    private func renderContent(_ node: [String: Any]) throws -> UIView {
         let props = node["props"] as? [String: Any] ?? [:], type = node["type"] as? String ?? ""
         let children = node["children"] as? [[String: Any]] ?? []
         func stack() throws -> UIStackView {
             let result = UIStackView(arrangedSubviews: try children.map { try render($0) })
             result.axis = (props["style"] as? [String: Any])?["flexDirection"] as? String == "row" ? .horizontal : .vertical
-            result.spacing = 8; return result
+            let style = props["style"] as? [String: Any] ?? [:]
+            result.spacing = CGFloat((style["gap"] as? NSNumber)?.doubleValue ?? 8)
+            if let padding = style["padding"] as? NSNumber {
+                let p = CGFloat(padding.doubleValue); result.isLayoutMarginsRelativeArrangement = true
+                result.layoutMargins = UIEdgeInsets(top: p, left: p, bottom: p, right: p)
+            }
+            return result
         }
         switch type {
         case "View", "SafeArea": return try stack()

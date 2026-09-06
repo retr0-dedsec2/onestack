@@ -1,3 +1,4 @@
+import { styleToCss, type StyleObject } from "@onestack/styles";
 import {
   Fragment,
   createEffect,
@@ -86,8 +87,8 @@ function setProperty(element: HTMLElement, key: string, value: unknown) {
     element.className = value == null ? "" : String(value);
     return;
   }
-  if (key === "style" && value && typeof value === "object") {
-    Object.assign(element.style, value);
+  if (key === "style") {
+    element.style.cssText = value && typeof value === "object" ? styleToCss(value as StyleObject) : value == null ? "" : String(value);
     return;
   }
   if (key.startsWith("on") && typeof value === "function") {

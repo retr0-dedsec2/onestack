@@ -21,3 +21,7 @@ For mobile, set the public HTTPS backend URL in `src/mobile.tsx` and add `https:
 Desktop uses `onestack build --target desktop`. For a packaged app, configure the client API origin in `src/main.tsx` to your HTTPS backend; the local Node demonstration serves both UI and API on one origin. Production deployments should add request rate limits and choose a persistent session-token mechanism appropriate to web/native clients.
 
 `onestack deploy --provider node|docker` supports the defaults. Node serverless deployments require PostgreSQL/S3 and a runtime-writable temporary directory for any local startup needs. Cloudflare and static export intentionally reject the Node-only backend. See [v0.4 documentation](../../docs/v0.4/README.md) for adapter APIs, mobile signing and remaining capability boundaries.
+
+## Simplified development and design
+
+`onestack dev` serves this frontend and backend together. The shared UI uses `createDesignSystem`, and `contract.ts` defines typed API requests. Set `api.origin` or `ONESTACK_API_ORIGIN` for packaged clients, or use the Backend URL field. See [the guide](../../docs/design-and-platforms.md).

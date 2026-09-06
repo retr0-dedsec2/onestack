@@ -105,7 +105,13 @@ class MainActivity : Activity() {
         val children = node.optJSONArray("children") ?: JSONArray()
         fun stack(): LinearLayout = LinearLayout(this).apply {
             orientation = if (props.optJSONObject("style")?.optString("flexDirection") == "row") LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
-            for (i in 0 until children.length()) addView(render(children.getJSONObject(i)))
+            val gap = dp(props.optJSONObject("style")?.optDouble("gap", 0.0) ?: 0.0)
+            for (i in 0 until children.length()) {
+                val child = render(children.getJSONObject(i))
+                val params = LinearLayout.LayoutParams(if (orientation == VERTICAL) -1 else -2, -2)
+                if (i > 0) { if (orientation == VERTICAL) params.topMargin = gap else params.leftMargin = gap }
+                addView(child, params)
+            }
         }
         val view: View = when (val type = node.getString("type")) {
             "View", "SafeArea" -> stack()
@@ -139,7 +145,28 @@ class MainActivity : Activity() {
             else -> error("Unsupported native primitive: $type")
         }
         view.isEnabled = !props.optBoolean("disabled")
+        applyStyle(view, props.optJSONObject("style") ?: JSONObject())
         return view
+    }
+    private fun dp(value: Double) = (value * resources.displayMetrics.density).toInt()
+    private fun color(value: String): Int? = try { android.graphics.Color.parseColor(value) } catch (_: Exception) { null }
+    private fun applyStyle(view: View, style: JSONObject) {
+        val padding = dp(style.optDouble("padding", 0.0))
+        if (style.has("padding")) view.setPadding(padding, padding, padding, padding)
+        if (style.has("minHeight")) view.minimumHeight = dp(style.optDouble("minHeight"))
+        view.alpha = style.optDouble("opacity", 1.0).toFloat()
+        if (style.has("backgroundColor") || style.has("borderRadius") || style.has("borderWidth")) {
+            view.background = android.graphics.drawable.GradientDrawable().apply {
+                this@MainActivity.color(style.optString("backgroundColor"))?.let { setColor(it) }
+                cornerRadius = dp(style.optDouble("borderRadius", 0.0)).toFloat()
+                this@MainActivity.color(style.optString("borderColor"))?.let { setStroke(dp(style.optDouble("borderWidth", 0.0)), it) }
+            }
+        }
+        if (view is TextView) {
+            this@MainActivity.color(style.optString("color"))?.let { view.setTextColor(it) }
+            if (style.has("fontSize")) view.textSize = style.optDouble("fontSize").toFloat()
+            if (style.optInt("fontWeight", 400) >= 600) view.setTypeface(view.typeface, android.graphics.Typeface.BOLD)
+        }
     }
     override fun onRequestPermissionsResult(code: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(code, permissions, results)

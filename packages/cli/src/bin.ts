@@ -91,6 +91,7 @@ if (parsed.command === "import") {
 if (parsed.command === "add") {
   const name = parsed.args[0]; if (!name) { console.error("Usage: onestack add <component>"); process.exit(1); }
   const templates: Record<string, string> = {
+    theme: `import { createDesignSystem } from "@onestack/ui";\n\nexport const { Screen, Stack, Row, Card, Title, Text, Caption, Button, Input, tokens } = createDesignSystem({ colors: { primary: "#3157d5" }, radius: 12 });\n`,
     button: `import { Button as PrimitiveButton } from "@onestack/ui";\n\nexport function Button(props: Record<string, unknown>) {\n  return <PrimitiveButton {...props} />;\n}\n`,
     card: `import { Card as PrimitiveCard } from "@onestack/ui";\n\nexport function Card(props: Record<string, unknown>) {\n  return <PrimitiveCard {...props} />;\n}\n`,
   };

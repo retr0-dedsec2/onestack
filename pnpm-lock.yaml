@@ -69,6 +69,9 @@ importers:
       '@onestack/router':
         specifier: workspace:*
         version: link:../../packages/router
+      '@onestack/rpc':
+        specifier: workspace:*
+        version: link:../../packages/rpc
       '@onestack/server':
         specifier: workspace:*
         version: link:../../packages/server
@@ -154,6 +157,9 @@ importers:
       '@onestack/reconciler':
         specifier: workspace:*
         version: link:../reconciler
+      '@onestack/styles':
+        specifier: workspace:*
+        version: link:../styles
 
   packages/errors: {}
 
@@ -198,6 +204,9 @@ importers:
       '@onestack/core':
         specifier: workspace:*
         version: link:../core
+      '@onestack/styles':
+        specifier: workspace:*
+        version: link:../styles
 
   packages/storage:
     dependencies:
