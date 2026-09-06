@@ -60,6 +60,8 @@ export async function generateMobile(root: string, platform: 'android' | 'ios') 
       project = project.replace('    settings:', '      - path: Assets.xcassets\n    settings:').replace('      base:', '      base:\n        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon');
     }
     if (mobile.splash) { cpSync(resolve(root, mobile.splash), resolve(output, 'onestack-splash.png')); project = project.replace('    settings:', '      - path: onestack-splash.png\n        buildPhase: resources\n    settings:'); }
+    const tests = resolve(root, 'native-tests/ios/tests.yml');
+    if (existsSync(tests)) { project += '\n' + readFileSync(tests, 'utf8'); cpSync(resolve(root, 'native-tests/ios/OneStackUITests.swift'), resolve(output, 'OneStackUITests.swift')); }
     writeFileSync(path, project);
   }
   return { output, manifest };
