@@ -40,9 +40,43 @@ export interface OneStackDesktopConfig {
   updater?: { endpoint?: string };
 }
 
+export interface OneStackMobilePermissions {
+  filesystem?: boolean;
+  camera?: boolean;
+  photos?: boolean;
+  microphone?: boolean;
+  clipboard?: boolean;
+  notifications?: boolean;
+  location?: boolean;
+  haptics?: boolean;
+  share?: boolean;
+  system?: boolean;
+  externalUrls?: boolean;
+}
+
+export interface OneStackMobileConfig {
+  orientation?: "portrait" | "landscape" | "any";
+  permissions?: OneStackMobilePermissions;
+  deepLinks?: string[];
+  icon?: string;
+  splash?: string;
+  allowWebViewFallback?: boolean;
+  android?: { packageName?: string; minSdk?: number; targetSdk?: number };
+  ios?: { bundleIdentifier?: string; deploymentTarget?: string };
+}
+
+export interface OneStackAdapterConfig { provider: string; [key: string]: unknown; }
+export interface OneStackDeployConfig { provider?: "vercel" | "netlify" | "cloudflare" | "node" | "docker" | "static"; }
+
 export interface OneStackConfig {
   app?: OneStackAppConfig;
   desktop?: OneStackDesktopConfig;
+  mobile?: OneStackMobileConfig;
+  data?: OneStackAdapterConfig;
+  auth?: OneStackAdapterConfig;
+  storage?: OneStackAdapterConfig;
+  payments?: OneStackAdapterConfig;
+  deploy?: OneStackDeployConfig;
 }
 
 export function defineConfig<T extends OneStackConfig>(config: T): T {
