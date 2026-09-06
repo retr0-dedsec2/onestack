@@ -1,4 +1,4 @@
-export type CliCommand = "dev" | "build" | "preview" | "release" | "check" | "add" | "import" | "help";
+export type CliCommand = "dev" | "build" | "preview" | "run" | "release" | "deploy" | "db" | "auth" | "check" | "add" | "import" | "help";
 
 export interface ParsedCli {
   command: CliCommand;
@@ -9,7 +9,7 @@ export interface ParsedCli {
 export function parseCli(argv: string[]): ParsedCli {
   const input = [...argv];
   const rawCommand = input.shift() ?? "help";
-  const commands = new Set<CliCommand>(["dev", "build", "preview", "release", "check", "add", "import", "help"]);
+  const commands = new Set<CliCommand>(["dev", "build", "preview", "run", "release", "deploy", "db", "auth", "check", "add", "import", "help"]);
   const command: CliCommand = commands.has(rawCommand as CliCommand) ? rawCommand as CliCommand : "help";
   const args: string[] = [];
   const flags: Record<string, string | boolean> = {};
@@ -29,10 +29,15 @@ export function helpText() {
   return [
     "OneStack CLI",
     "",
-    "  onestack dev [--target web|desktop]",
-    "  onestack build [--target web|desktop]",
+    "  onestack dev [--target web|desktop|android|ios]",
+    "  onestack build [--target web|desktop|android|ios]",
+    "  onestack run --target android|ios",
     "  onestack preview [--target web|desktop]",
-    "  onestack release --target desktop",
+    "  onestack release --target desktop|android|ios",
+    "  onestack deploy [--provider vercel|netlify|cloudflare|node|docker|static]",
+    "  onestack db generate",
+    "  onestack db migrate",
+    "  onestack auth setup",
     "  onestack check",
     "  onestack add <component>",
     "  onestack import <file>",
