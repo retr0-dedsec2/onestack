@@ -25,6 +25,7 @@ export async function generateMobile(root: string, platform: 'android' | 'ios') 
   mkdirSync(output, { recursive: true }); cpSync(templates, output, { recursive: true });
   const assets = platform === 'android' ? resolve(output, 'app/src/main/assets') : output;
   mkdirSync(assets, { recursive: true });
+  for (const asset of [mobile.icon, mobile.splash]) if (asset && (!asset.toLowerCase().endsWith('.png') || !existsSync(resolve(root, asset)))) throw new Error('Mobile icon/splash must reference an existing PNG file');
   const manifest = { identifier, name: config.app?.name ?? 'OneStack', version: config.app?.version ?? '0.4.0', permissions: mobile.permissions ?? {}, allowWebViewFallback: mobile.allowWebViewFallback ?? false };
   writeFileSync(resolve(assets, 'manifest.json'), JSON.stringify(manifest, null, 2));
   await build({ entryPoints: [entry], outfile: resolve(assets, 'app.js'), bundle: true, format: 'iife', platform: 'browser', target: 'es2020', jsx: 'automatic', jsxImportSource: '@onestack/core', plugins: [clientBoundary()] });
@@ -36,13 +37,29 @@ export async function generateMobile(root: string, platform: 'android' | 'ios') 
     if (mobile.orientation && mobile.orientation !== 'any') androidManifest = androidManifest.replace('android:exported="true"', `android:exported="true" android:screenOrientation="${mobile.orientation}"`);
     const links = (mobile.deepLinks ?? []).map(scheme => `<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="${scheme}"/></intent-filter>`).join('');
     androidManifest = androidManifest.replace('</activity>', links + '</activity>');
+    if (mobile.icon || mobile.splash) mkdirSync(resolve(output, 'app/src/main/res/drawable'), { recursive: true });
+    if (mobile.icon) { cpSync(resolve(root, mobile.icon), resolve(output, 'app/src/main/res/drawable/onestack_icon.png')); androidManifest = androidManifest.replace('<application ', '<application android:icon="@drawable/onestack_icon" '); }
+    if (mobile.splash) {
+      cpSync(resolve(root, mobile.splash), resolve(output, 'app/src/main/res/drawable/onestack_splash.png'));
+      mkdirSync(resolve(output, 'app/src/main/res/values'), { recursive: true });
+      writeFileSync(resolve(output, 'app/src/main/res/values/styles.xml'), '<resources><style name="OneStackTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:windowBackground">@drawable/onestack_splash</item></style></resources>');
+      androidManifest = androidManifest.replace('@android:style/Theme.Material.Light.NoActionBar', '@style/OneStackTheme');
+    }
     writeFileSync(path, androidManifest);
   } else {
     const path = resolve(output, 'project.yml');
     const orientations = mobile.orientation === 'landscape' ? ['UIInterfaceOrientationLandscapeLeft', 'UIInterfaceOrientationLandscapeRight'] : mobile.orientation === 'portrait' ? ['UIInterfaceOrientationPortrait'] : ['UIInterfaceOrientationPortrait', 'UIInterfaceOrientationLandscapeLeft', 'UIInterfaceOrientationLandscapeRight'];
-    const plist = `<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleDisplayName</key><string>${xml(manifest.name)}</string><key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string><key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>${xml(manifest.version)}</string><key>UILaunchScreen</key><dict/><key>UISupportedInterfaceOrientations</key><array>${orientations.map(o => `<string>${o}</string>`).join('')}</array><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array>${(mobile.deepLinks ?? []).map(s => `<string>${s}</string>`).join('')}</array></dict></array></dict></plist>`;
+    const plist = `<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleDisplayName</key><string>${xml(manifest.name)}</string><key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string><key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>${xml(manifest.version)}</string><key>UILaunchScreen</key><dict>${mobile.splash ? '<key>UIImageName</key><string>onestack-splash.png</string>' : ''}</dict><key>UISupportedInterfaceOrientations</key><array>${orientations.map(o => `<string>${o}</string>`).join('')}</array><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array>${(mobile.deepLinks ?? []).map(s => `<string>${s}</string>`).join('')}</array></dict></array></dict></plist>`;
     writeFileSync(resolve(output, 'Info.plist'), plist);
-    writeFileSync(path, readFileSync(path, 'utf8').replace('dev.onestack.example', identifier).replace("iOS: '15.0'", `iOS: '${mobile.ios?.deploymentTarget ?? '15.0'}'`).replace('GENERATE_INFOPLIST_FILE: YES', 'INFOPLIST_FILE: Info.plist'));
+    let project = readFileSync(path, 'utf8').replace('dev.onestack.example', identifier).replace("iOS: '15.0'", `iOS: '${mobile.ios?.deploymentTarget ?? '15.0'}'`).replace('GENERATE_INFOPLIST_FILE: YES', 'INFOPLIST_FILE: Info.plist');
+    if (mobile.icon) {
+      const icon = resolve(output, 'Assets.xcassets/AppIcon.appiconset'); mkdirSync(icon, { recursive: true });
+      cpSync(resolve(root, mobile.icon), resolve(icon, 'icon.png'));
+      writeFileSync(resolve(icon, 'Contents.json'), JSON.stringify({ images: [{ idiom: 'universal', platform: 'ios', size: '1024x1024', filename: 'icon.png' }], info: { version: 1, author: 'onestack' } }));
+      project = project.replace('    settings:', '      - path: Assets.xcassets\n    settings:').replace('      base:', '      base:\n        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon');
+    }
+    if (mobile.splash) { cpSync(resolve(root, mobile.splash), resolve(output, 'onestack-splash.png')); project = project.replace('    settings:', '      - path: onestack-splash.png\n        buildPhase: resources\n    settings:'); }
+    writeFileSync(path, project);
   }
   return { output, manifest };
 }

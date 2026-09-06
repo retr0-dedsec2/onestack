@@ -39,7 +39,7 @@ class MainActivity : Activity() {
         engine.loadDataWithBaseURL("https://onestack.invalid/", "<html><script>$js</script></html>", "text/html", "UTF-8", null)
     }
     private fun emit(id: String, value: Any? = null) {
-        engine.evaluateJavascript("globalThis.__onestackEvent?.(${JSONObject.quote(id)},${JSONObject.valueToString(value)})", null)
+        engine.evaluateJavascript("globalThis.__onestackEvent?.(...${JSONArray().put(id).put(value ?: JSONObject.NULL)})", null)
     }
     inner class Bridge {
         @JavascriptInterface fun postMessage(raw: String) { runOnUiThread {

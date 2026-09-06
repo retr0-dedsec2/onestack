@@ -8,6 +8,7 @@ const source = (pkg: string, file = "index.ts") => resolve(root, `packages/${pkg
 export default defineConfig({
   resolve: {
     alias: [
+      { find: "@onestack/errors", replacement: source("errors") },
       { find: "@onestack/core/jsx-dev-runtime", replacement: source("core", "jsx-dev-runtime.ts") },
       { find: "@onestack/core/jsx-runtime", replacement: source("core", "jsx-runtime.ts") },
       { find: "@onestack/core", replacement: source("core") },
