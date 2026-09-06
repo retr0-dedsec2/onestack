@@ -1,0 +1,10 @@
+{
+  "name": "@onestack/data",
+  "version": "0.4.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "dependencies": { "@onestack/errors": "workspace:*" },
+  "scripts": { "build": "tsc -b", "test": "vitest run" }
+}
