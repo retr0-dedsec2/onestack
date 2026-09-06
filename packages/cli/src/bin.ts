@@ -39,7 +39,7 @@ function runVite(command: "dev" | "build" | "preview", args: string[]) {
   const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
   const result = spawnSync(executable, ["exec", "vite", command === "dev" ? undefined : command, ...args].filter((value): value is string => Boolean(value)), { stdio: "inherit", shell: process.platform === "win32" });
   if (result.error) throw result.error;
-  process.exit(result.status ?? 0);
+  process.exit(result.status ?? 1);
 }
 
 const parsed = parseCli(process.argv.slice(2));

@@ -10,6 +10,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.makeKeyAndVisible()
         return true
     }
+    func applicationDidBecomeActive(_ application: UIApplication) { (window?.rootViewController as? OneStackController)?.lifecycle("active") }
+    func applicationDidEnterBackground(_ application: UIApplication) { (window?.rootViewController as? OneStackController)?.lifecycle("background") }
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        (window?.rootViewController as? OneStackController)?.lifecycle("deepLink", url: url.absoluteString); return true
+    }
 }
 
 final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavigationDelegate, UITextFieldDelegate {
@@ -44,6 +49,11 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
             } else if let request = body["request"] as? [String: Any] { invoke(request) }
         } catch { showError(error) }
     }
+    func lifecycle(_ state: String, url: String? = nil) {
+        guard engine != nil else { return }
+        var detail: [String: Any] = ["state": state]; if let url = url { detail["url"] = url }
+        if let data = try? JSONSerialization.data(withJSONObject: detail), let json = String(data: data, encoding: .utf8) { engine.evaluateJavaScript("globalThis.dispatchEvent(new CustomEvent('onestack:lifecycle', {detail:\(json)}))") }
+    }
     private func failure(_ message: String) -> NSError { NSError(domain: "OneStack", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
     private func showError(_ error: Error) { NSLog("OneStack: %@", error.localizedDescription) }
     private func emit(_ id: String, _ value: Any = NSNull()) {
@@ -58,6 +68,15 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
             let args = request["args"] as? [Any] ?? [], argument = args.first as? String ?? ""
             var value: Any = NSNull()
             switch "\(namespace).\(method)" {
+            case "filesystem.read":
+                let data = try Data(contentsOf: localFile(argument)); guard data.count <= 1048576 else { throw failure("File too large") }; value = String(data: data, encoding: .utf8) ?? ""
+            case "filesystem.write":
+                let file = try localFile(argument), contents = args.count > 1 ? args[1] as? String ?? "" : ""
+                guard contents.utf8.count <= 1048576 else { throw failure("File too large") }
+                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try contents.write(to: file, atomically: true, encoding: .utf8)
+            case "filesystem.remove":
+                let file = try localFile(argument); if FileManager.default.fileExists(atPath: file.path) { try FileManager.default.removeItem(at: file) }
             case "system.info": value = ["platform": "ios", "version": UIDevice.current.systemVersion]
             case "clipboard.write": UIPasteboard.general.string = argument
             case "clipboard.read": value = UIPasteboard.general.string ?? ""
@@ -74,6 +93,13 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
             response["ok"] = true; response["value"] = value
         } catch { response["ok"] = false; response["error"] = ["code": "NATIVE_OPERATION_FAILED", "message": error.localizedDescription] }
         if let data = try? JSONSerialization.data(withJSONObject: response), let json = String(data: data, encoding: .utf8) { engine.evaluateJavaScript("globalThis.__onestackResponse?.(\(json))") }
+    }
+    private func localFile(_ key: String) throws -> URL {
+        guard !key.isEmpty, !key.hasPrefix("/"), !key.contains("\\"), !key.components(separatedBy: "/").contains(where: { $0 == ".." || $0 == "." || $0.isEmpty }) else { throw failure("Invalid file key") }
+        let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("OneStack").resolvingSymlinksInPath()
+        let file = base.appendingPathComponent(key).resolvingSymlinksInPath()
+        guard file.path.hasPrefix(base.path + "/") else { throw failure("File escapes sandbox") }
+        return file
     }
     private func text(_ node: [String: Any]) -> String {
         if let value = node["children"] as? String { return value }

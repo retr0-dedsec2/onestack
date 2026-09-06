@@ -22,3 +22,9 @@ export function createMobileBridge(send: (request: BridgeRequest) => void, timeo
   };
   return bridge;
 }
+
+export function onMobileLifecycle(handler: (event: { state: string; url?: string }) => void) {
+  const listener = (event: Event) => handler((event as CustomEvent).detail);
+  globalThis.addEventListener('onestack:lifecycle', listener);
+  return () => globalThis.removeEventListener('onestack:lifecycle', listener);
+}

@@ -16,4 +16,4 @@ export class MobileRuntime {
 export function createMobileRuntime(options: MobileRuntimeOptions) { return new MobileRuntime(options); }
 
 export { mountMobile, createNativeHost } from "./renderer.js";
-export { createMobileBridge } from "./bridge.js";
+export { createMobileBridge, onMobileLifecycle } from "./bridge.js";

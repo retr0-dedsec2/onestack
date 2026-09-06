@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, type S3ClientConfig } from '@aws-sdk/client-s3';
+import { S3Client, HeadObjectCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, type S3ClientConfig } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { StorageAdapter, StorageObject } from './index.js';
 
@@ -12,6 +12,7 @@ export function createS3Storage(options: S3ClientConfig & { bucket: string }): S
       const result = await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: data, ContentType: options.contentType, Metadata: options.metadata }));
       return { key, size: typeof data === 'string' ? Buffer.byteLength(data) : data.byteLength, etag: result.ETag, ...options };
     },
+    async metadata(key) { const result = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key })); return { key, size: result.ContentLength, contentType: result.ContentType, etag: result.ETag, metadata: result.Metadata }; },
     async download(key) {
       const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
       if (!result.Body) throw new Error('Empty S3 response body');

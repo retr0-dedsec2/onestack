@@ -32,19 +32,19 @@ export class Database {
 export function createDatabase(adapter: DataAdapter) { return new Database(adapter); }
 
 export function createMemoryAdapter(seed: Record<string, Row[]> = {}): DataAdapter {
-  const store = new Map<string, Row[]>(Object.entries(seed).map(([key, rows]) => [key, rows.map((row) => ({ ...row }))]));
+  const store = new Map<string, Row[]>(Object.entries(seed).map(([key, rows]) => [key, rows.map((row) => structuredClone(row))]));
   const matches = (row: Row, where?: Row) => !where || Object.entries(where).every(([key, value]) => row[key] === value);
   const adapter: DataAdapter = {
     provider: "memory",
     async query<T extends Row>(table: string, options: QueryOptions = {}) {
-      let rows = (store.get(table) ?? []).filter((row) => matches(row, options.where)).map((row) => ({ ...row }));
-      for (const order of [...(options.orderBy ?? [])].reverse()) rows.sort((a, b) => String(a[order.field] ?? "").localeCompare(String(b[order.field] ?? "")) * (order.direction === "desc" ? -1 : 1));
+      let rows = (store.get(table) ?? []).filter((row) => matches(row, options.where)).map((row) => structuredClone(row));
+      for (const order of [...(options.orderBy ?? [])].reverse()) rows.sort((a, b) => (typeof a[order.field] === "number" && typeof b[order.field] === "number" ? (a[order.field] as number) - (b[order.field] as number) : String(a[order.field] ?? "").localeCompare(String(b[order.field] ?? ""))) * (order.direction === "desc" ? -1 : 1));
       const start = options.offset ?? 0; return rows.slice(start, options.limit === undefined ? undefined : start + options.limit) as T[];
     },
-    async insert(table, values) { const rows = (Array.isArray(values) ? values : [values]).map((row) => ({ ...row })); store.set(table, [...(store.get(table) ?? []), ...rows]); return rows; },
+    async insert(table, values) { const rows = (Array.isArray(values) ? values : [values]).map((row) => structuredClone(row)); store.set(table, [...(store.get(table) ?? []), ...rows]); return rows; },
     async update<T extends Row>(table: string, values: Partial<T>, options: QueryOptions = {}) { const rows = store.get(table) ?? []; const updated: Row[] = []; store.set(table, rows.map((row) => matches(row, options.where) ? (updated.push({ ...row, ...values }), { ...row, ...values }) : row)); return updated as T[]; },
     async delete(table, options = {}) { const rows = store.get(table) ?? []; const kept = rows.filter((row) => !matches(row, options.where)); store.set(table, kept); return rows.length - kept.length; },
-    async transaction(fn) { const snapshot = new Map([...store].map(([key, rows]) => [key, rows.map((row) => ({ ...row }))])); try { return await fn(adapter); } catch (error) { store.clear(); snapshot.forEach((rows, key) => store.set(key, rows)); throw error; } },
+    async transaction(fn) { const snapshot = new Map([...store].map(([key, rows]) => [key, rows.map((row) => structuredClone(row))])); try { return await fn(adapter); } catch (error) { store.clear(); snapshot.forEach((rows, key) => store.set(key, rows)); throw error; } },
   };
   return adapter;
 }

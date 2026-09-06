@@ -15,6 +15,7 @@ for (const provider of ['local', 's3']) describe.skipIf(provider === 's3' && !pr
     const key = `contract/${Date.now()}.bin`, bytes = new Uint8Array([0, 255, 13, 10]);
     try {
       expect((await adapter.upload(key, bytes, { contentType: 'application/octet-stream' })).size).toBe(4);
+      expect((await adapter.metadata!(key)).contentType).toBe('application/octet-stream');
       expect(Array.from(await adapter.download(key))).toEqual(Array.from(bytes));
       expect((await adapter.list('contract/')).some(o => o.key === key)).toBe(true);
       if (adapter.signedUrl) expect(await adapter.signedUrl(key, 60)).toContain('X-Amz-Signature');

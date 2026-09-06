@@ -59,6 +59,9 @@ class MainActivity : Activity() {
             check(config.optJSONObject("permissions")?.optBoolean(namespace) == true) { "Capability denied: $namespace" }
             val method = request.getString("method"); val args = request.optJSONArray("args") ?: JSONArray()
             val value: Any? = when ("$namespace.$method") {
+                "filesystem.read" -> { val file = localFile(args.getString(0)); check(file.length() <= 1048576); file.readText() }
+                "filesystem.write" -> { val file = localFile(args.getString(0)); val contents = args.getString(1); check(contents.length <= 1048576); file.parentFile?.mkdirs(); file.writeText(contents); null }
+                "filesystem.remove" -> { localFile(args.getString(0)).delete(); null }
                 "system.info" -> JSONObject().put("platform", "android").put("version", android.os.Build.VERSION.RELEASE)
                 "clipboard.write" -> { (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("", args.getString(0))); null }
                 "clipboard.read" -> (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()
@@ -70,6 +73,13 @@ class MainActivity : Activity() {
             response.put("ok", true).put("value", value ?: JSONObject.NULL)
         } catch (error: Exception) { response.put("ok", false).put("error", JSONObject().put("code", "NATIVE_OPERATION_FAILED").put("message", error.message)) }
         engine.evaluateJavascript("globalThis.__onestackResponse?.($response)", null)
+    }
+    private fun localFile(key: String): java.io.File {
+        check(key.isNotEmpty() && !key.startsWith("/") && !key.contains("\\") && key.split('/').none { it == ".." || it == "." || it.isEmpty() }) { "Invalid file key" }
+        val base = java.io.File(filesDir, "onestack").apply { mkdirs() }.canonicalFile
+        val file = java.io.File(base, key).canonicalFile
+        check(file.path.startsWith(base.path + java.io.File.separator)) { "File escapes sandbox" }
+        return file
     }
     private fun text(node: JSONObject): String {
         val children = node.opt("children")
@@ -116,5 +126,14 @@ class MainActivity : Activity() {
         view.isEnabled = !props.optBoolean("disabled")
         return view
     }
+    private fun lifecycle(state: String, url: String? = null) {
+        if (::engine.isInitialized) {
+            val detail = JSONObject().put("state", state).put("url", url ?: JSONObject.NULL)
+            engine.evaluateJavascript("globalThis.dispatchEvent(new CustomEvent('onestack:lifecycle', {detail:$detail}))", null)
+        }
+    }
+    override fun onResume() { super.onResume(); lifecycle("active") }
+    override fun onPause() { lifecycle("background"); super.onPause() }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); lifecycle("deepLink", intent.dataString) }
     override fun onDestroy() { engine.destroy(); super.onDestroy() }
 }
