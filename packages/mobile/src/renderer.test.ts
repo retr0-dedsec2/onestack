@@ -23,3 +23,11 @@ it('correlates bridge responses and handles errors/disposal', async () => {
   const failure = bridge.invoke('system', 'bad'); bridge.receive({ id, ok: false, error: { code: 'UNSUPPORTED', message: 'unsupported' } }); await expect(failure).rejects.toThrow('unsupported');
   const abandoned = bridge.invoke('system', 'info'); bridge.dispose(); await expect(abandoned).rejects.toThrow('disposed');
 });
+it('preserves component-local signals across native updates', async () => {
+  let tree: MobileNode, emit!: (id: string, value: unknown) => void;
+  let mounts = 0;
+  function Counter() { mounts++; const [count, set] = createSignal(0); return createVNode('button', { onClick: () => set(n => n + 1) }, () => count()); }
+  const dispose = mountMobile(createVNode(Counter, {}), { render: node => { tree = node; }, subscribe: fn => { emit = fn; return () => {}; } });
+  for (let i = 0; i < 2; i++) { emit(String((tree!.children as MobileNode[])[0].props!.onClick), null); await Promise.resolve(); }
+  expect(mounts).toBe(1); expect(JSON.stringify(tree!)).toContain('"children":"2"'); dispose();
+});

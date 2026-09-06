@@ -14,7 +14,11 @@
   "include": [
     "src"
   ],
-  "references": [],
+  "references": [
+    {
+      "path": "../errors"
+    }
+  ],
   "exclude": [
     "src/**/*.test.ts",
     "src/**/*.test.tsx"

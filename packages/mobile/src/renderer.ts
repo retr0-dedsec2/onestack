@@ -1,4 +1,4 @@
-import { createEffect, Fragment, isKeyedList, isVNode, type Child } from '@onestack/core';
+import { createEffect, untrack, Fragment, isKeyedList, isVNode, type Child } from '@onestack/core';
 import type { MobileNode, MobilePrimitive } from './index.js';
 
 const primitives = new Set(['View', 'Text', 'Image', 'ScrollView', 'Pressable', 'TextInput', 'Switch', 'ActivityIndicator', 'SafeArea', 'WebView']);
@@ -7,19 +7,30 @@ export interface MobileHost { render(node: MobileNode): void; subscribe(handler:
 
 /** Snapshot renderer: portable VNodes and reactive accessors become native trees. */
 export function mountMobile(view: Child, host: MobileHost, options: { allowWebViewFallback?: boolean } = {}) {
+  const components = new Map<string, { type: unknown; value: Child }>();
   let handlers = new Map<string, (event: unknown) => void>();
   const unsubscribe = host.subscribe((id, value) => handlers.get(id)?.({ target: { value, checked: value }, value, nativeEvent: value }));
   const dispose = createEffect(() => {
-    const next = new Map<string, (event: unknown) => void>(); let id = 0;
-    function convert(child: Child): MobileNode[] {
+    const next = new Map<string, (event: unknown) => void>(); let id = 0; const visited = new Set<string>();
+    function convert(child: Child, path = "root"): MobileNode[] {
       if (child == null || typeof child === 'boolean') return [];
-      if (typeof child === 'function') return convert(child());
-      if (Array.isArray(child)) return child.flatMap(convert);
-      if (isKeyedList(child)) return child.each().flatMap((item, i) => convert(child.children(() => item, () => i)));
+      if (typeof child === 'function') return convert(child(), path + "/dynamic");
+      if (Array.isArray(child)) return child.flatMap((item, i) => convert(item, path + "/" + i));
+      if (isKeyedList(child)) return child.each().flatMap((item, i) => convert(child.children(() => item, () => i), path + "/key/" + child.key(item, i)));
       if (!isVNode(child)) return [{ type: 'Text', children: String(child) }];
-      if (child.type === Fragment) return child.children.flatMap(convert);
-      if (typeof child.type === 'function') return convert(child.type({ ...child.props, children: child.children }));
-      let type = primitives.has(child.type) ? child.type as MobilePrimitive : tags[child.type];
+      if (child.type === Fragment) return child.children.flatMap((item, i) => convert(item, path + "/" + i));
+      if (typeof child.type === 'function') {
+        visited.add(path);
+        let cached = components.get(path);
+        if (!cached || cached.type !== child.type) {
+          const component = child.type;
+          cached = { type: component, value: untrack(() => component({ ...child.props, children: child.children })) };
+          components.set(path, cached);
+        }
+        return convert(cached.value, path + '/component');
+      }
+      const hinted = child.props['data-onestack-native'];
+      let type = typeof hinted === 'string' && primitives.has(hinted) ? hinted as MobilePrimitive : primitives.has(child.type) ? child.type as MobilePrimitive : tags[child.type];
       if (child.type === 'input') type = child.props.type === 'checkbox' ? 'Switch' : 'TextInput';
       if (!type) throw new Error(`Unsupported native component: ${child.type}. Use an explicit WebView.`);
       if (type === 'WebView' && !options.allowWebViewFallback) throw new Error('WebView fallback is disabled');
@@ -28,12 +39,13 @@ export function mountMobile(view: Child, host: MobileHost, options: { allowWebVi
         if (/^on[A-Z]/.test(key) && typeof value === 'function') { const eventId = `event_${id++}`; next.set(eventId, value as (event: unknown) => void); props[key] = eventId; }
         else props[key] = typeof value === 'function' ? value() : value;
       }
-      return [{ type, props, children: child.children.flatMap(convert) }];
+      return [{ type, props, children: child.children.flatMap((item, i) => convert(item, path + "/" + (isVNode(item) && item.key !== undefined ? item.key : i))) }];
     }
     const tree: MobileNode = { type: 'View', children: convert(view) };
+    for (const key of components.keys()) if (!visited.has(key)) components.delete(key);
     handlers = next; host.render(tree);
   });
-  return () => { dispose(); unsubscribe(); handlers.clear(); };
+  return () => { dispose(); unsubscribe(); handlers.clear(); components.clear(); };
 }
 
 export function createNativeHost(): MobileHost {

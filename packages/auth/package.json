@@ -23,6 +23,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@onestack/data": "workspace:*"
+    "@onestack/data": "workspace:*",
+    "@onestack/errors": "workspace:*"
   }
 }

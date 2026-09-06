@@ -31,7 +31,7 @@ export const Image = hostComponent("img", { loading: "lazy" });
 export const Stack = hostComponent("div", { style: { display: "flex", flexDirection: "column" } });
 export const Grid = hostComponent("div", { style: { display: "grid" } });
 export const Container = hostComponent("div");
-export const ScrollView = hostComponent("div", { style: { overflow: "auto" } });
+export const ScrollView = hostComponent("div", { "data-onestack-native": "ScrollView", style: { overflow: "auto" } });
 export const Input = hostComponent("input");
 export const Textarea = hostComponent("textarea");
 export const Form = hostComponent("form");
@@ -92,3 +92,11 @@ export function assertAccessibleProps(component: string, props: Record<string, u
 
 export type UniversalComponent = typeof View;
 export type UniversalVNode = VNode;
+
+// Native hints keep these primitives usable by the DOM renderer as well.
+export const Pressable = Button;
+export const TextInput = Input;
+export const Switch = hostComponent("input", { type: "checkbox" });
+export const ActivityIndicator = hostComponent("progress", { "data-onestack-native": "ActivityIndicator", "aria-label": "Loading" });
+export const SafeArea = hostComponent("div", { "data-onestack-native": "SafeArea" });
+export const WebView = hostComponent("iframe", { "data-onestack-native": "WebView", title: "Embedded content", sandbox: "allow-scripts" });

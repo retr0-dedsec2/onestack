@@ -1,3 +1,4 @@
+import { providerBoundary } from "@onestack/errors";
 export interface AuthUser { id: string; email?: string; name?: string; metadata?: Record<string, unknown>; }
 export interface AuthSession { user: AuthUser; expiresAt?: string; token?: string; }
 export interface SignInInput { email?: string; password?: string; provider?: string; redirectTo?: string; }
@@ -10,7 +11,7 @@ export interface AuthAdapter {
   magicLink?(email: string, redirectTo?: string): Promise<void>;
 }
 export class AuthClient {
-  constructor(readonly adapter: AuthAdapter) {}
+  constructor(readonly adapter: AuthAdapter) { this.adapter = providerBoundary(adapter, "AUTH_PROVIDER_ERROR"); }
   signUp(input: { email: string; password?: string; name?: string }) { if (!this.adapter.signUp) throw new Error("Sign-up unsupported"); return this.adapter.signUp(input); }
   magicLink(email: string, redirectTo?: string) { if (!this.adapter.magicLink) throw new Error("Magic links unsupported"); return this.adapter.magicLink(email, redirectTo); }
   getSession() { return this.adapter.getSession(); }

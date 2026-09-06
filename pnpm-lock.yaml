@@ -88,6 +88,9 @@ importers:
       '@onestack/data':
         specifier: workspace:*
         version: link:../data
+      '@onestack/errors':
+        specifier: workspace:*
+        version: link:../errors
 
   packages/cli:
     dependencies:
@@ -162,6 +165,9 @@ importers:
 
   packages/payments:
     dependencies:
+      '@onestack/errors':
+        specifier: workspace:*
+        version: link:../errors
       stripe:
         specifier: ^18.5.0
         version: 18.5.0(@types/node@22.20.1)
@@ -201,6 +207,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.883.0
         version: 3.1127.0
+      '@onestack/errors':
+        specifier: workspace:*
+        version: link:../errors
 
   packages/styles: {}
 

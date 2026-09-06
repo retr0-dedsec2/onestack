@@ -1,3 +1,4 @@
+import { providerBoundary } from "@onestack/errors";
 export interface CheckoutInput { priceId: string; mode?: "payment" | "subscription"; customerId?: string; successUrl: string; cancelUrl: string; quantity?: number; }
 export interface CheckoutSession { id: string; url: string; }
 export interface Subscription { id: string; customerId: string; status: string; currentPeriodEnd?: string; }
@@ -11,7 +12,7 @@ export interface PaymentsAdapter {
   verifyWebhook(payload: string | Uint8Array, signature: string): Promise<PaymentEvent>;
 }
 export class PaymentsClient {
-  constructor(readonly adapter: PaymentsAdapter) {}
+  constructor(readonly adapter: PaymentsAdapter) { this.adapter = providerBoundary(adapter, "PAYMENTS_PROVIDER_ERROR"); }
   createCustomer(input: { email?: string; name?: string }) { if (!this.adapter.createCustomer) throw new Error("Customer creation unsupported"); return this.adapter.createCustomer(input); }
   async dispatchWebhook(payload: string | Uint8Array, signature: string, handler: (event: PaymentEvent) => Promise<void>) { const event = await this.verifyWebhook(payload, signature); await handler(event); return event; }
   createCheckout(input: CheckoutInput) { return this.adapter.createCheckout(input); }
