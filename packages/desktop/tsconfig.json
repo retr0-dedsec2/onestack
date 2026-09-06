@@ -10,11 +10,24 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM"]
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   },
   "references": [
-    { "path": "../core" },
-    { "path": "../ui" }
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../ui"
+    }
   ],
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
 }

@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist/types",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@onestack/core",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
+  },
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/dom"
+    },
+    {
+      "path": "../../packages/ui"
+    },
+    {
+      "path": "../../packages/router"
+    },
+    {
+      "path": "../../packages/mobile"
+    },
+    {
+      "path": "../../packages/data"
+    },
+    {
+      "path": "../../packages/auth"
+    },
+    {
+      "path": "../../packages/storage"
+    },
+    {
+      "path": "../../packages/payments"
+    },
+    {
+      "path": "../../packages/server"
+    }
+  ],
+  "include": [
+    "src"
+  ]
+}

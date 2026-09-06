@@ -4,9 +4,9 @@ OneStack is an experimental universal full-stack TypeScript/JSX application fram
 
 > Write the product once. Choose where it runs.
 
-## Current scope — v0.2
+## Current scope — v0.4
 
-OneStack now contains a working **web/full-stack core plus a hybrid desktop runtime** without React as the application runtime.
+OneStack contains a web/full-stack core, hybrid desktop runtime, native Android/iOS hosts, SQL/auth/storage/payment adapters and deployment output generators, without React as the application runtime. See the [v0.4 guide](docs/v0.4/README.md) for supported capabilities and provider boundaries.
 
 ### Core framework
 
@@ -194,3 +194,7 @@ GitHub Actions validates:
 - v0.2: hybrid desktop runtime — Windows/macOS/Linux
 - v0.3: native mobile renderer + capability bridge — Android/iOS
 - v0.4: production data/auth/storage/payment adapters and deployment presets
+
+## v0.4 universal runtime and services
+
+See the [v0.4 guide](docs/v0.4/README.md) for native Android/iOS builds, SQL/auth/storage/payment adapters, deployment presets, security boundaries and compatibility notes. The [universal example](examples/universal/README.md) demonstrates the shared UI and a real service-backed application.

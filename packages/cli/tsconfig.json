@@ -10,13 +10,32 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "references": [
-    { "path": "../compiler" },
-    { "path": "../config" },
-    { "path": "../desktop" },
-    { "path": "../registry" }
+    {
+      "path": "../compiler"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../desktop"
+    },
+    {
+      "path": "../registry"
+    },
+    {
+      "path": "../deploy"
+    }
   ],
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
 }

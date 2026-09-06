@@ -1,11 +1,10 @@
 {
   "name": "onestack",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "bootstrap": "pnpm install --no-frozen-lockfile",
-    "prebuild": "pnpm bootstrap",
     "build": "tsc -b --pretty false",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
@@ -18,6 +17,16 @@
     "@types/node": "^22.0.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@types/pg": "^8.15.5",
+    "esbuild": "^0.25.9"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

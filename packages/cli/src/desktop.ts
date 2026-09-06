@@ -16,7 +16,7 @@ interface DesktopProjectConfig {
 type DesktopManifest = ReturnType<typeof writeDesktopManifest>;
 
 function readJson(path: string) { return JSON.parse(readFileSync(path, "utf8")) as Record<string, any>; }
-function slug(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "onestack-app"; }
+export function desktopArtifactName(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "onestack-app"; }
 function xml(value: string) { return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;"); }
 function nativeArch() { return process.arch === "arm64" ? "arm64" : process.arch === "ia32" ? "i386" : "amd64"; }
 
@@ -86,7 +86,7 @@ function run(command: string, args: string[], options: { cwd?: string; env?: Nod
 
 function platformDir() { return process.platform === "win32" ? "windows" : process.platform === "darwin" ? "macos" : "linux"; }
 function binaryName() { return process.platform === "win32" ? "onestack-desktop-host.exe" : "onestack-desktop-host"; }
-function packagedBinaryName(manifest: DesktopManifest) { return process.platform === "win32" ? `${manifest.app.name}.exe` : manifest.app.name.replace(/\s+/g, "-"); }
+function packagedBinaryName(manifest: DesktopManifest) { return process.platform === "win32" ? `${desktopArtifactName(manifest.app.name)}.exe` : desktopArtifactName(manifest.app.name); }
 
 export function runDesktopDev(root: string, viteArgs: string[]) {
   const manifestPath = resolve(root, ".onestack/desktop.json");
@@ -143,7 +143,7 @@ function stagePortable(root: string, outputRoot: string, nativeTarget: string, m
 }
 
 function stageMac(root: string, outputRoot: string, nativeTarget: string, manifest: DesktopManifest) {
-  const app = resolve(outputRoot, `${manifest.app.name}.app`);
+  const app = resolve(outputRoot, `${desktopArtifactName(manifest.app.name)}.app`);
   const contents = resolve(app, "Contents");
   const macos = resolve(contents, "MacOS");
   const resources = resolve(contents, "Resources");
@@ -166,16 +166,16 @@ function packageDesktop(outputRoot: string, manifest: DesktopManifest, strict: b
   const artifacts: string[] = [];
   const warnOrThrow = (message: string) => { if (strict) throw new Error(message); console.warn(`OneStack packaging: ${message}`); };
   if (process.platform === "darwin") {
-    const app = resolve(outputRoot, `${manifest.app.name}.app`);
+    const app = resolve(outputRoot, `${desktopArtifactName(manifest.app.name)}.app`);
     artifacts.push(app);
     if (!toolExists("hdiutil", ["help"])) { warnOrThrow("hdiutil is unavailable; .app was built but .dmg was skipped."); return artifacts; }
-    const dmg = resolve(dirname(outputRoot), `${manifest.app.name}-${manifest.app.version}.dmg`);
-    run("hdiutil", ["create", "-volname", manifest.app.name, "-srcfolder", app, "-ov", "-format", "UDZO", dmg]);
+    const dmg = resolve(dirname(outputRoot), `${desktopArtifactName(manifest.app.name)}-${manifest.app.version}.dmg`);
+    run("hdiutil", ["create", "-volname", desktopArtifactName(manifest.app.name), "-srcfolder", app, "-ov", "-format", "UDZO", dmg]);
     artifacts.push(dmg);
     return artifacts;
   }
   if (process.platform === "linux") {
-    const appSlug = slug(manifest.app.name);
+    const appSlug = desktopArtifactName(manifest.app.name);
     const version = manifest.app.version;
     const arch = nativeArch();
     const debRoot = mkdtempSync(resolve(tmpdir(), "onestack-deb-"));
@@ -201,7 +201,7 @@ function packageDesktop(outputRoot: string, manifest: DesktopManifest, strict: b
       chmodSync(appRun, 0o755);
       writeFileSync(resolve(appDir, `${appSlug}.desktop`), `[Desktop Entry]\nType=Application\nName=${manifest.app.name}\nExec=${appSlug}\nIcon=${appSlug}\nCategories=Utility;\n`);
       writeFileSync(resolve(appDir, `${appSlug}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="28" fill="#111114"/><path d="M32 38h64v14H48v12h40v14H48v12h48v14H32z" fill="white"/></svg>`);
-      const appImage = resolve(dirname(outputRoot), `${manifest.app.name}-${version}-${process.arch}.AppImage`);
+      const appImage = resolve(dirname(outputRoot), `${desktopArtifactName(manifest.app.name)}-${version}-${process.arch}.AppImage`);
       run("appimagetool", [appDir, appImage]);
       artifacts.push(appImage);
       rmSync(appDir, { recursive: true, force: true });
@@ -215,7 +215,7 @@ function packageDesktop(outputRoot: string, manifest: DesktopManifest, strict: b
     if (!toolExists("wix", ["--version"])) { warnOrThrow("WiX CLI is unavailable; executable was built but .msi packaging was skipped."); return artifacts; }
     const wxs = resolve(outputRoot, "onestack.wxs");
     writeFileSync(wxs, `<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"><Package Name="${xml(manifest.app.name)}" Manufacturer="OneStack" Version="${xml(manifest.app.version)}" UpgradeCode="00000000-0000-0000-0000-000000000001"><MajorUpgrade DowngradeErrorMessage="A newer version is already installed."/><MediaTemplate EmbedCab="yes"/><StandardDirectory Id="ProgramFilesFolder"><Directory Id="INSTALLFOLDER" Name="${xml(manifest.app.name)}"><Files Include="**"><Exclude Files="**\\*.wxs"/><Exclude Files="**\\*.msi"/></Files></Directory></StandardDirectory></Package></Wix>`);
-    const msi = resolve(dirname(outputRoot), `${manifest.app.name}-${manifest.app.version}.msi`);
+    const msi = resolve(dirname(outputRoot), `${desktopArtifactName(manifest.app.name)}-${manifest.app.version}.msi`);
     try { run("wix", ["build", basename(wxs), "-o", msi], { cwd: outputRoot }); artifacts.push(msi); }
     catch (error) { warnOrThrow(`WiX packaging failed: ${error instanceof Error ? error.message : error}`); }
     return artifacts;
@@ -227,7 +227,7 @@ function signDesktop(outputRoot: string, manifest: DesktopManifest, artifacts: s
   const warnOrThrow = (message: string) => { if (strict) throw new Error(message); console.warn(`OneStack signing: ${message}`); };
   if (process.platform === "darwin") {
     const identity = process.env.ONESTACK_MACOS_SIGN_IDENTITY;
-    const app = resolve(outputRoot, `${manifest.app.name}.app`);
+    const app = resolve(outputRoot, `${desktopArtifactName(manifest.app.name)}.app`);
     if (identity) run("codesign", ["--deep", "--force", "--options", "runtime", "--sign", identity, app]);
     else if (strict) warnOrThrow("ONESTACK_MACOS_SIGN_IDENTITY is required for a signed release.");
     const profile = process.env.ONESTACK_MACOS_NOTARY_PROFILE;
@@ -251,7 +251,7 @@ export function previewDesktop(root: string) {
   const manifest = { app: { name } } as DesktopManifest;
   const dir = resolve(root, "dist/desktop", platformDir());
   if (!existsSync(dir)) throw new Error("No desktop build found. Run onestack build --target desktop first.");
-  const executable = process.platform === "darwin" ? resolve(dir, `${name}.app/Contents/MacOS`, packagedBinaryName(manifest)) : resolve(dir, packagedBinaryName(manifest));
+  const executable = process.platform === "darwin" ? resolve(dir, `${desktopArtifactName(name)}.app/Contents/MacOS`, packagedBinaryName(manifest)) : resolve(dir, packagedBinaryName(manifest));
   const child: ChildProcess = spawn(executable, [], { cwd: dirname(executable), stdio: "inherit" });
   child.on("exit", (code) => process.exit(code ?? 0));
 }

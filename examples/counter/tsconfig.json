@@ -7,11 +7,21 @@
     "strict": true,
     "jsx": "react-jsx",
     "jsxImportSource": "@onestack/core",
-    "lib": ["ES2022", "DOM"]
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "outDir": "dist/types"
   },
   "references": [
-    { "path": "../../packages/core" },
-    { "path": "../../packages/dom" }
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/dom"
+    }
   ],
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

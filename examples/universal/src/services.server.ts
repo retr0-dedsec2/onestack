@@ -1,0 +1,15 @@
+import { mkdirSync } from 'node:fs';
+import { createDatabase } from '@onestack/data';
+import { createSQLiteAdapter } from '@onestack/data/sqlite';
+import { createPostgresAdapter } from '@onestack/data/postgres';
+import { authMigrations } from '@onestack/auth/local';
+import { createLocalStorage } from '@onestack/storage/local';
+import { createS3Storage } from '@onestack/storage/s3';
+import { createStripePayments } from '@onestack/payments/stripe';
+import { createPayments } from '@onestack/payments';
+if (!process.env.DATABASE_URL || !process.env.S3_BUCKET) mkdirSync(process.env.DATA_DIR ?? '.data', { recursive: true });
+export const adapter = process.env.DATABASE_URL ? createPostgresAdapter({ connectionString: process.env.DATABASE_URL }) : createSQLiteAdapter(`${process.env.DATA_DIR ?? '.data'}/universal.sqlite`);
+export const database = createDatabase(adapter);
+export const ready = database.migrate([...authMigrations, { id: 'universal_1', up: 'CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, text TEXT NOT NULL); CREATE TABLE IF NOT EXISTS billing_customers (id TEXT PRIMARY KEY, customer_id TEXT NOT NULL);' }]);
+export const storage = process.env.S3_BUCKET ? createS3Storage({ bucket: process.env.S3_BUCKET, region: process.env.AWS_REGION ?? 'us-east-1', endpoint: process.env.S3_ENDPOINT }) : createLocalStorage(`${process.env.DATA_DIR ?? '.data'}/files`);
+export const payments = process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET ? createPayments(createStripePayments({ secretKey: process.env.STRIPE_SECRET_KEY, webhookSecret: process.env.STRIPE_WEBHOOK_SECRET })) : undefined;

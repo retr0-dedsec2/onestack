@@ -5,3 +5,9 @@ coverage/
 packages/desktop/native/target/
 .DS_Store
 *.log
+
+*.tsbuildinfo
+packages/mobile/native/**/build/
+packages/mobile/native/**/.gradle/
+
+.data/

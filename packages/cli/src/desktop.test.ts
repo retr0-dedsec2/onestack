@@ -27,3 +27,10 @@ describe("desktop manifest generation", () => {
     expect(readDesktopConfig(root)).toMatchObject({ app: { name: "Legacy App" }, window: { width: 700 } });
   });
 });
+
+// Scoped package names must never become nested executable paths.
+it("normalizes scoped package names for desktop artifacts", async () => {
+  const { desktopArtifactName } = await import("./desktop.js");
+  expect(desktopArtifactName("@onestack/example-counter")).toBe("onestack-example-counter");
+  expect(desktopArtifactName("../../Example App")).toBe("example-app");
+});
