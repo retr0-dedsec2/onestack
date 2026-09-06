@@ -21,6 +21,7 @@ class MainActivity : Activity() {
     private lateinit var engine: WebView
     private lateinit var root: LinearLayout
     private lateinit var config: JSONObject
+    private var notificationRequestId: String? = null
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         config = JSONObject(assets.open("manifest.json").bufferedReader().readText())
@@ -58,7 +59,21 @@ class MainActivity : Activity() {
             val namespace = request.getString("namespace")
             check(config.optJSONObject("permissions")?.optBoolean(namespace) == true) { "Capability denied: $namespace" }
             val method = request.getString("method"); val args = request.optJSONArray("args") ?: JSONArray()
+            if (namespace == "notifications" && method == "request" && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                check(notificationRequestId == null) { "Notification permission request already pending" }
+                notificationRequestId = request.getString("id")
+                requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 42)
+                return
+            }
             val value: Any? = when ("$namespace.$method") {
+                "notifications.request" -> true
+                "notifications.show" -> {
+                    if (android.os.Build.VERSION.SDK_INT >= 33) check(checkSelfPermission("android.permission.POST_NOTIFICATIONS") == android.content.pm.PackageManager.PERMISSION_GRANTED) { "Notification permission not granted" }
+                    val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+                    manager.createNotificationChannel(android.app.NotificationChannel("onestack", "OneStack", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+                    val notification = android.app.Notification.Builder(this, "onestack").setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(args.getString(0)).setContentText(args.optString(1)).setAutoCancel(true).build()
+                    manager.notify(System.currentTimeMillis().toInt(), notification); null
+                }
                 "filesystem.read" -> { val file = localFile(args.getString(0)); check(file.length() <= 1048576); file.readText() }
                 "filesystem.write" -> { val file = localFile(args.getString(0)); val contents = args.getString(1); check(contents.length <= 1048576); file.parentFile?.mkdirs(); file.writeText(contents); null }
                 "filesystem.remove" -> { localFile(args.getString(0)).delete(); null }
@@ -125,6 +140,16 @@ class MainActivity : Activity() {
         }
         view.isEnabled = !props.optBoolean("disabled")
         return view
+    }
+    override fun onRequestPermissionsResult(code: Int, permissions: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(code, permissions, results)
+        if (code == 42) {
+            notificationRequestId?.let { id ->
+                val response = JSONObject().put("id", id).put("ok", true).put("value", results.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED)
+                engine.evaluateJavascript("globalThis.__onestackResponse?.($response)", null)
+            }
+            notificationRequestId = null
+        }
     }
     private fun lifecycle(state: String, url: String? = null) {
         if (::engine.isInitialized) {

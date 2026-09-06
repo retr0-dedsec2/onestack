@@ -58,7 +58,7 @@ async function handler(request) {
 }
 ${nodeAdapter}`);
     write('server.mjs', `import { createServer } from 'node:http';\nimport handler from './node-adapter.mjs';\ncreateServer(handler).listen(Number(process.env.PORT ?? 3000), process.env.HOST ?? '0.0.0.0');\n`);
-    if (provider === 'docker') write('Dockerfile', 'FROM node:22-slim\nWORKDIR /app\nCOPY --chown=node:node . .\nUSER node\nEXPOSE 3000\nCMD ["node", "server.mjs"]\n');
+    if (provider === 'docker') write('Dockerfile', 'FROM node:22-slim\nWORKDIR /app\nCOPY --chown=node:node . .\nRUN mkdir -p /app/data && chown node:node /app/data\nENV DATA_DIR=/app/data\nUSER node\nEXPOSE 3000\nCMD ["node", "server.mjs"]\n');
   }
   write('deployment.json', { provider, staticAssets: staticPath, server: Boolean(serverBundle), environment: 'Provide secrets at runtime, never in the client build.' });
   return output;

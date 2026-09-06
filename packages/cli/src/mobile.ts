@@ -34,6 +34,7 @@ export async function generateMobile(root: string, platform: 'android' | 'ios') 
     writeFileSync(gradle, readFileSync(gradle, 'utf8').replace('dev.onestack.example', identifier).replace('minSdk = 26', `minSdk = ${mobile.android?.minSdk ?? 26}`).replace('targetSdk = 35', `targetSdk = ${mobile.android?.targetSdk ?? 35}`).replace('versionName = "0.4.0"', `versionName = ${JSON.stringify(manifest.version)}`));
     const path = resolve(output, 'app/src/main/AndroidManifest.xml');
     let androidManifest = readFileSync(path, 'utf8').replace('android:label="OneStack"', `android:label="${xml(manifest.name)}"`);
+    if (mobile.permissions?.notifications) androidManifest = androidManifest.replace('<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/><application ');
     if (mobile.orientation && mobile.orientation !== 'any') androidManifest = androidManifest.replace('android:exported="true"', `android:exported="true" android:screenOrientation="${mobile.orientation}"`);
     const links = (mobile.deepLinks ?? []).map(scheme => `<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="${scheme}"/></intent-filter>`).join('');
     androidManifest = androidManifest.replace('</activity>', links + '</activity>');

@@ -194,3 +194,7 @@ GitHub Actions validates:
 - v0.2: hybrid desktop runtime — Windows/macOS/Linux
 - v0.3: native mobile renderer + capability bridge — Android/iOS
 - v0.4: production data/auth/storage/payment adapters and deployment presets
+
+## v0.4 universal runtime and services
+
+See the [v0.4 guide](docs/v0.4/README.md) for native Android/iOS builds, SQL/auth/storage/payment adapters, deployment presets, security boundaries and compatibility notes. The [universal example](examples/universal/README.md) demonstrates the shared UI and a real service-backed application.

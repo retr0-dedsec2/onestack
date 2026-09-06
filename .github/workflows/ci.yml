@@ -24,6 +24,8 @@ jobs:
       - run: pnpm build
       - run: pnpm --filter @onestack/example-counter build
       - run: pnpm --filter @onestack/example-universal build
+      - run: pnpm --filter @onestack/example-universal deploy:node
+      - run: node scripts/smoke-universal.mjs
 
   fresh-windows-build:
     name: Fresh Windows workspace build

@@ -7,7 +7,7 @@ import { createLocalStorage } from '@onestack/storage/local';
 import { createS3Storage } from '@onestack/storage/s3';
 import { createStripePayments } from '@onestack/payments/stripe';
 import { createPayments } from '@onestack/payments';
-mkdirSync(process.env.DATA_DIR ?? '.data', { recursive: true });
+if (!process.env.DATABASE_URL || !process.env.S3_BUCKET) mkdirSync(process.env.DATA_DIR ?? '.data', { recursive: true });
 export const adapter = process.env.DATABASE_URL ? createPostgresAdapter({ connectionString: process.env.DATABASE_URL }) : createSQLiteAdapter(`${process.env.DATA_DIR ?? '.data'}/universal.sqlite`);
 export const database = createDatabase(adapter);
 export const ready = database.migrate([...authMigrations, { id: 'universal_1', up: 'CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, text TEXT NOT NULL); CREATE TABLE IF NOT EXISTS billing_customers (id TEXT PRIMARY KEY, customer_id TEXT NOT NULL);' }]);

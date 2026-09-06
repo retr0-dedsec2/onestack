@@ -1,5 +1,6 @@
 import UIKit
 import WebKit
+import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -66,6 +67,17 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
             let namespace = request["namespace"] as? String ?? "", method = request["method"] as? String ?? ""
             guard (config["permissions"] as? [String: Bool])?[namespace] == true else { throw failure("Capability denied: \(namespace)") }
             let args = request["args"] as? [Any] ?? [], argument = args.first as? String ?? ""
+            if namespace == "notifications" && method == "request" {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                    DispatchQueue.main.async { self.completeRequest(request["id"] ?? "", value: granted, error: error) }
+                }; return
+            }
+            if namespace == "notifications" && method == "show" {
+                let content = UNMutableNotificationContent(); content.title = argument; content.body = args.count > 1 ? args[1] as? String ?? "" : ""
+                UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)) { error in
+                    DispatchQueue.main.async { self.completeRequest(request["id"] ?? "", value: NSNull(), error: error) }
+                }; return
+            }
             var value: Any = NSNull()
             switch "\(namespace).\(method)" {
             case "filesystem.read":
@@ -92,6 +104,11 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
             }
             response["ok"] = true; response["value"] = value
         } catch { response["ok"] = false; response["error"] = ["code": "NATIVE_OPERATION_FAILED", "message": error.localizedDescription] }
+        if let data = try? JSONSerialization.data(withJSONObject: response), let json = String(data: data, encoding: .utf8) { engine.evaluateJavaScript("globalThis.__onestackResponse?.(\(json))") }
+    }
+    private func completeRequest(_ id: Any, value: Any, error: Error?) {
+        var response: [String: Any] = ["id": id, "ok": error == nil, "value": value]
+        if let error = error { response["error"] = ["code": "NATIVE_OPERATION_FAILED", "message": error.localizedDescription] }
         if let data = try? JSONSerialization.data(withJSONObject: response), let json = String(data: data, encoding: .utf8) { engine.evaluateJavaScript("globalThis.__onestackResponse?.(\(json))") }
     }
     private func localFile(_ key: String) throws -> URL {
