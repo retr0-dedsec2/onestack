@@ -69,6 +69,8 @@ jobs:
           node-version: 22
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - name: Test native asset serving
+        run: cargo test --manifest-path packages/desktop/native/Cargo.toml
       - name: Check native host
         run: cargo check --manifest-path packages/desktop/native/Cargo.toml
       - name: Package counter and universal applications

@@ -71,3 +71,5 @@ Open the CI run and download its **Artifacts**. Desktop artifacts include both t
 Implementation references: [Vite SSR middleware](https://vite.dev/guide/ssr) and [GitHub artifact preservation](https://github.com/actions/upload-artifact).
 
 When a trusted reverse proxy terminates TLS for Node output, set `ONESTACK_TRUST_PROXY=1` so its `X-Forwarded-Proto: https` header determines the Fetch request origin. Configure this only behind that proxy. Same-origin development and direct HTTP Node requests work without it.
+
+Packaged desktop assets are served through the restricted `onestack` protocol, including direct route refreshes. The native mobile engine uses `https://onestack.invalid`; desktop origins are `onestack://localhost` on macOS/Linux and `http://onestack.localhost` on Windows. Add only the origins of clients you support to `ALLOWED_ORIGINS`. Requests with no configured backend return an explicit configuration error; no local Node server is bundled into the client executable.
