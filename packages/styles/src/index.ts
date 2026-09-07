@@ -52,12 +52,12 @@ function toKebabCase(property: string) {
   return property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 }
 
-export function styleToCss(style: StyleObject, theme: Theme): string {
+export function styleToCss(style: StyleObject, theme: Theme = { tokens: {} }): string {
   const resolved = resolveStyle(style, theme);
   return Object.entries(resolved)
     .filter(([, value]) => value !== null && value !== undefined)
     .map(([property, value]) => {
-      const serialized = typeof value === "number" && !UNITLESS.has(property) ? `${value}px` : String(value);
+      const serialized = typeof value === "number" && !UNITLESS.has(property) && !property.startsWith("--") ? `${value}px` : String(value);
       return `${toKebabCase(property)}:${serialized}`;
     })
     .join(";");

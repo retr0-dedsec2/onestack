@@ -11,3 +11,5 @@ packages/mobile/native/**/build/
 packages/mobile/native/**/.gradle/
 
 .data/
+
+/artifacts/

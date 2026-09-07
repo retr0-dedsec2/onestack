@@ -1,3 +1,4 @@
+import { publicApiOrigin } from './origin.js';
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,7 +29,7 @@ export async function generateMobile(root: string, platform: 'android' | 'ios') 
   for (const asset of [mobile.icon, mobile.splash]) if (asset && (!asset.toLowerCase().endsWith('.png') || !existsSync(resolve(root, asset)))) throw new Error('Mobile icon/splash must reference an existing PNG file');
   const manifest = { identifier, name: config.app?.name ?? 'OneStack', version: config.app?.version ?? '0.4.0', permissions: mobile.permissions ?? {}, allowWebViewFallback: mobile.allowWebViewFallback ?? false };
   writeFileSync(resolve(assets, 'manifest.json'), JSON.stringify(manifest, null, 2));
-  await build({ entryPoints: [entry], outfile: resolve(assets, 'app.js'), bundle: true, format: 'iife', platform: 'browser', target: 'es2020', jsx: 'automatic', jsxImportSource: '@onestack/core', plugins: [clientBoundary()] });
+  await build({ entryPoints: [entry], outfile: resolve(assets, 'app.js'), bundle: true, format: 'iife', platform: 'browser', target: 'es2020', jsx: 'automatic', jsxImportSource: '@onestack/core', define: { __ONESTACK_API_ORIGIN__: JSON.stringify(publicApiOrigin(root)) }, plugins: [clientBoundary()] });
   if (platform === 'android') {
     const gradle = resolve(output, 'app/build.gradle.kts');
     writeFileSync(gradle, readFileSync(gradle, 'utf8').replace('dev.onestack.example', identifier).replace('minSdk = 26', `minSdk = ${mobile.android?.minSdk ?? 26}`).replace('targetSdk = 35', `targetSdk = ${mobile.android?.targetSdk ?? 35}`).replace('versionName = "0.4.0"', `versionName = ${JSON.stringify(manifest.version)}`));

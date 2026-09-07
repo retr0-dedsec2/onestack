@@ -14,3 +14,8 @@ describe("OneStack SSR", () => {
     expect(renderToString(createVNode("p", null, '<script>')).html).toContain("&lt;script&gt;");
   });
 });
+
+it('serializes numeric styles consistently with the DOM renderer', () => {
+  const html = renderToString(createVNode('div', { style: { padding: 16, opacity: 0.5, '--scale': 2 } })).html;
+  expect(html).toContain('padding:16px;opacity:0.5;--scale:2');
+});

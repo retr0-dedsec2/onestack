@@ -46,7 +46,7 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
                 callbacks.removeAll()
                 let next = try render(node); content?.removeFromSuperview(); content = next
                 view.addSubview(next); next.translatesAutoresizingMaskIntoConstraints = false
-                NSLayoutConstraint.activate([next.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16), next.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16), next.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16)])
+                NSLayoutConstraint.activate([next.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16), next.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16), next.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16), next.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)])
             } else if let request = body["request"] as? [String: Any] { invoke(request) }
         } catch { showError(error) }
     }
@@ -122,21 +122,60 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
         if let value = node["children"] as? String { return value }
         return (node["children"] as? [[String: Any]] ?? []).map { text($0) }.joined()
     }
+    private func color(_ value: Any?) -> UIColor? {
+        guard let hex = value as? String, hex.hasPrefix("#"), hex.count == 7,
+              let rgb = UInt32(hex.dropFirst(), radix: 16) else { return nil }
+        return UIColor(red: CGFloat((rgb >> 16) & 255) / 255, green: CGFloat((rgb >> 8) & 255) / 255, blue: CGFloat(rgb & 255) / 255, alpha: 1)
+    }
     private func render(_ node: [String: Any]) throws -> UIView {
+        let result = try renderContent(node)
+        let props = node["props"] as? [String: Any] ?? [:], style = props["style"] as? [String: Any] ?? [:]
+        func number(_ key: String, _ fallback: CGFloat = 0) -> CGFloat { (style[key] as? NSNumber).map { CGFloat($0.doubleValue) } ?? fallback }
+        if let background = color(style["backgroundColor"]) { result.backgroundColor = background }
+        result.layer.cornerRadius = number("borderRadius")
+        result.layer.borderWidth = number("borderWidth")
+        result.layer.borderColor = color(style["borderColor"])?.cgColor
+        result.alpha = number("opacity", 1)
+        if let control = result as? UIControl { control.isEnabled = props["disabled"] as? Bool != true }
+        if style["minHeight"] != nil { result.heightAnchor.constraint(greaterThanOrEqualToConstant: number("minHeight")).isActive = true }
+        if let stack = result as? UIStackView {
+            stack.spacing = number("gap", 8)
+            let padding = number("padding")
+            stack.isLayoutMarginsRelativeArrangement = true
+            stack.layoutMargins = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
+        }
+        let font = UIFont.systemFont(ofSize: number("fontSize", 16), weight: number("fontWeight", 400) >= 600 ? .bold : .regular)
+        if let label = result as? UILabel { label.font = font; if let c = color(style["color"]) { label.textColor = c } }
+        if let input = result as? UITextField { if style["borderWidth"] != nil { input.borderStyle = .none }; input.font = font; if let c = color(style["color"]) { input.textColor = c } }
+        if let button = result as? UIButton {
+            button.titleLabel?.font = font
+            if let c = color(style["color"]) { button.setTitleColor(c, for: .normal) }
+            let padding = number("padding"); button.contentEdgeInsets = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
+        }
+        return result
+    }
+    private func renderContent(_ node: [String: Any]) throws -> UIView {
         let props = node["props"] as? [String: Any] ?? [:], type = node["type"] as? String ?? ""
         let children = node["children"] as? [[String: Any]] ?? []
         func stack() throws -> UIStackView {
             let result = UIStackView(arrangedSubviews: try children.map { try render($0) })
             result.axis = (props["style"] as? [String: Any])?["flexDirection"] as? String == "row" ? .horizontal : .vertical
-            result.spacing = 8; return result
+            let style = props["style"] as? [String: Any] ?? [:]
+            result.spacing = CGFloat((style["gap"] as? NSNumber)?.doubleValue ?? 8)
+            if let padding = style["padding"] as? NSNumber {
+                let p = CGFloat(padding.doubleValue); result.isLayoutMarginsRelativeArrangement = true
+                result.layoutMargins = UIEdgeInsets(top: p, left: p, bottom: p, right: p)
+            }
+            return result
         }
         switch type {
         case "View", "SafeArea": return try stack()
         case "ScrollView":
-            let scroll = UIScrollView(), child = try stack(); scroll.addSubview(child); child.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([child.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor), child.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor), child.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor), child.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor), child.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor), scroll.heightAnchor.constraint(equalToConstant: 400)])
+            let scroll = UIScrollView(), child = try stack()
+            let preferredHeight = scroll.heightAnchor.constraint(equalToConstant: 400); preferredHeight.priority = .defaultLow; preferredHeight.isActive = true; scroll.addSubview(child); child.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([child.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor), child.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor), child.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor), child.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor), child.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor)])
             return scroll
-        case "Text": let label = UILabel(); label.text = text(node); label.numberOfLines = 0; return label
+        case "Text": let label = UILabel(); label.text = text(node); label.numberOfLines = 0; label.isAccessibilityElement = true; label.accessibilityLabel = text(node); label.accessibilityTraits = .staticText; return label
         case "Pressable":
             let button = UIButton(type: .system); button.setTitle(text(node), for: .normal); button.isEnabled = props["disabled"] as? Bool != true
             let id = props["onPress"] as? String ?? props["onClick"] as? String ?? ""

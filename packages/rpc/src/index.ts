@@ -93,3 +93,6 @@ export function createRpcStub<Args extends unknown[], Result>(
     return response.value as Result;
   };
 }
+
+export { createApiClient, createApiHandler, ApiError } from "./http.js";
+export type { ApiContract, ApiRoutes } from "./http.js";

@@ -16,7 +16,7 @@ function childrenOf(props: UniversalProps): Child[] {
 function hostComponent(tag: string, defaults: Record<string, unknown> = {}) {
   const component = ((props: UniversalProps) => {
     const { children: _children, ...rest } = props;
-    return createVNode(tag, { ...defaults, ...rest }, ...childrenOf(props));
+    return createVNode(tag, { ...defaults, ...rest, ...(defaults.style || rest.style ? { style: { ...(defaults.style as object ?? {}), ...(rest.style ?? {}) } } : {}) }, ...childrenOf(props));
   }) as Component<UniversalProps> & { universalType: string };
   Object.defineProperty(component, "universalType", { value: tag, enumerable: true });
   return component;
@@ -100,3 +100,6 @@ export const Switch = hostComponent("input", { type: "checkbox" });
 export const ActivityIndicator = hostComponent("progress", { "data-onestack-native": "ActivityIndicator", "aria-label": "Loading" });
 export const SafeArea = hostComponent("div", { "data-onestack-native": "SafeArea" });
 export const WebView = hostComponent("iframe", { "data-onestack-native": "WebView", title: "Embedded content", sandbox: "allow-scripts" });
+
+export { createDesignSystem } from "./design.js";
+export type { DesignTokens, DesignProps } from "./design.js";

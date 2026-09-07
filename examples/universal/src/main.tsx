@@ -1,3 +1,4 @@
 import { render } from '@onestack/dom';
 import { createApp } from './app.js';
-render(createApp('', url => { window.location.href = url; }), document.getElementById('app')!);
+import { apiOrigin } from './origin.js';
+render(createApp(apiOrigin, url => { window.location.href = url; }, window.location.pathname), document.getElementById('app')!);

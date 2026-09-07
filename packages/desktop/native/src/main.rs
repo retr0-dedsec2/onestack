@@ -1,3 +1,4 @@
+mod assets;
 mod clipboard;
 mod config;
 mod dialog;
@@ -8,7 +9,7 @@ mod shell;
 mod tray;
 mod updater;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 use config::{DesktopManifest, WindowConfig};
 use protocol::{DesktopError, DesktopEvent, DesktopRequest, DesktopResponse, PROTOCOL};
 use serde_json::{json, Value};
@@ -39,7 +40,7 @@ fn main() -> anyhow::Result<()> {
     let event_loop = EventLoopBuilder::<HostEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
     let mut state = HostState { manifest: manifest.clone(), windows: HashMap::new(), window_ids: HashMap::new(), trays: HashMap::new(), tray_actions: HashMap::new(), next_window: 1, next_tray: 0 };
-    let main_window = create_window(&event_loop, "main".into(), manifest.window.clone(), initial_url(&manifest), proxy.clone())?;
+    let main_window = create_window(&event_loop, "main".into(), manifest.window.clone(), initial_url(&manifest), manifest.asset_index().and_then(|p| p.parent().map(PathBuf::from)), proxy.clone())?;
     state.window_ids.insert(main_window.window.id(), main_window.id.clone()); state.windows.insert(main_window.id.clone(), main_window);
 
     event_loop.run(move |event, target, control_flow| {
@@ -65,15 +66,16 @@ fn main() -> anyhow::Result<()> {
 
 fn initial_url(manifest: &DesktopManifest) -> Option<String> {
     if let Some(url) = manifest.url.clone() { return Some(url); }
-    manifest.asset_index().and_then(|path| Url::from_file_path(path).ok()).map(|url| url.to_string())
+    manifest.asset_index().map(|_| "onestack://localhost/".to_string())
 }
 
-fn create_window(target: &EventLoopWindowTarget<HostEvent>, id: String, options: WindowConfig, url: Option<String>, proxy: EventLoopProxy<HostEvent>) -> anyhow::Result<AppWindow> {
+fn create_window(target: &EventLoopWindowTarget<HostEvent>, id: String, options: WindowConfig, url: Option<String>, asset_root: Option<PathBuf>, proxy: EventLoopProxy<HostEvent>) -> anyhow::Result<AppWindow> {
     let mut builder = WindowBuilder::new().with_title(options.title.clone()).with_inner_size(LogicalSize::new(options.width, options.height)).with_resizable(options.resizable).with_transparent(options.transparent).with_decorations(options.decorations).with_always_on_top(options.always_on_top);
     if options.fullscreen { builder = builder.with_fullscreen(Some(Fullscreen::Borderless(None))); }
     let window = builder.build(target)?;
     let ipc_id = id.clone(); let init_id = serde_json::to_string(&id)?;
     let mut webview_builder = WebViewBuilder::new().with_initialization_script(format!("globalThis.__ONESTACK_DESKTOP_WINDOW_ID__={init_id};")).with_ipc_handler(move |request| { let _ = proxy.send_event(HostEvent::Ipc { window_id: ipc_id.clone(), body: request.body().clone() }); });
+    if let Some(root) = asset_root { webview_builder = webview_builder.with_custom_protocol("onestack".into(), move |_, request| assets::response(&root, request)); }
     if let Some(url) = url { webview_builder = webview_builder.with_url(&url); } else { webview_builder = webview_builder.with_html("<!doctype html><meta charset=utf-8><title>OneStack</title><body><h1>OneStack Desktop</h1><p>No production assets or development URL were found.</p></body>"); }
     let webview = webview_builder.build(&window)?;
     Ok(AppWindow { id, window, webview })
@@ -126,8 +128,13 @@ fn dispatch_window(state: &mut HostState, target: &EventLoopWindowTarget<HostEve
     if command == "create" {
         require(state, "window.create")?; state.next_window += 1; let id = format!("window-{}", state.next_window); let defaults = state.manifest.window.clone();
         let options = WindowConfig { title: payload.get("title").and_then(Value::as_str).unwrap_or(&defaults.title).to_owned(), width: payload.get("width").and_then(Value::as_f64).unwrap_or(defaults.width), height: payload.get("height").and_then(Value::as_f64).unwrap_or(defaults.height), resizable: payload.get("resizable").and_then(Value::as_bool).unwrap_or(defaults.resizable), transparent: payload.get("transparent").and_then(Value::as_bool).unwrap_or(defaults.transparent), decorations: payload.get("decorations").and_then(Value::as_bool).unwrap_or(!payload.get("frameless").and_then(Value::as_bool).unwrap_or(false)), always_on_top: payload.get("alwaysOnTop").and_then(Value::as_bool).unwrap_or(false), fullscreen: payload.get("fullscreen").and_then(Value::as_bool).unwrap_or(false) };
-        let route = payload.get("route").and_then(Value::as_str).unwrap_or("/"); let base = initial_url(&state.manifest).unwrap_or_else(|| "about:blank".into()); let url = if base.starts_with("http") { Some(format!("{}{}", base.trim_end_matches('/'), route)) } else { Some(base) };
-        let app_window = create_window(target, id.clone(), options, url, proxy.clone()).map_err(|e| DesktopError::new("OS_DESKTOP_WINDOW_ERROR", e.to_string()))?;
+        let route = payload.get("route").and_then(Value::as_str).unwrap_or("/");
+        let base = initial_url(&state.manifest).unwrap_or_else(|| "about:blank".into());
+        let parsed = Url::parse(&base).map_err(|_| DesktopError::new("OS_DESKTOP_ROUTE_ERROR", "Invalid application URL"))?;
+        let destination = parsed.join(route).map_err(|_| DesktopError::new("OS_DESKTOP_ROUTE_ERROR", "Invalid route"))?;
+        if destination.scheme() != parsed.scheme() || destination.host_str() != parsed.host_str() || destination.port() != parsed.port() { return Err(DesktopError::new("OS_DESKTOP_ROUTE_ERROR", "Window routes must stay within the application")); }
+        let url = Some(destination.to_string());
+        let app_window = create_window(target, id.clone(), options, url, state.manifest.asset_index().and_then(|p| p.parent().map(PathBuf::from)), proxy.clone()).map_err(|e| DesktopError::new("OS_DESKTOP_WINDOW_ERROR", e.to_string()))?;
         state.window_ids.insert(app_window.window.id(), id.clone()); state.windows.insert(id.clone(), app_window); return Ok(json!({"id": id}));
     }
     if command == "list" { return Ok(json!(state.windows.keys().cloned().collect::<Vec<_>>())); }

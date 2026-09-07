@@ -1,42 +1,56 @@
 import { createSignal } from '@onestack/core';
-import { View, Heading, Text, Button, Input } from '@onestack/ui';
+import { createDesignSystem } from '@onestack/ui';
+import { createApiClient } from '@onestack/rpc';
+import type { AppApi } from './contract.js';
+const { Screen, Stack, Card, Title, Text, Button, Input, Row, Caption } = createDesignSystem();
 import { createRouter } from '@onestack/router';
 
-export function createApp(apiOrigin: string, openUrl: (url: string) => void) {
+export function createApp(apiOrigin: string, openUrl: (url: string) => void, initialPath = '/') {
   const [message, setMessage] = createSignal('Sign up or sign in to create a note.');
   const [notes, setNotes] = createSignal<string[]>([]);
-  const [page, setPage] = createSignal('notes');
-  const router = createRouter([{ path: '/', value: 'notes' }, { path: '/billing', value: 'billing' }], '/');
+  const router = createRouter([{ path: '/', value: 'notes' }, { path: '/billing', value: 'billing' }], initialPath);
+  const [page, setPage] = createSignal(router.current()?.route.value ?? 'notes');
   router.subscribe(match => setPage(match?.route.value ?? 'notes'));
-  let email = '', password = '', note = '', token = '';
-  async function call(action: string, input: Record<string, unknown> = {}) {
+  let email = '', password = '', note = '', token = '', backend = apiOrigin;
+  const [busy, setBusy] = createSignal(false);
+  const client = () => createApiClient<AppApi>({ origin: backend, token: () => token || undefined, onUnauthorized: () => { token = ''; setNotes([]); } });
+  async function call<Name extends keyof AppApi>(action: Name, input: AppApi[Name]['input']) {
+    if (busy()) return;
+    setBusy(true);
     try {
-      const response = await fetch(`${apiOrigin}/api/${action}`, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(input) });
-      const result = await response.json(); if (!response.ok) throw new Error(result.error ?? `HTTP ${response.status}`);
-      if ('token' in result) token = result.token ?? '';
-      if (result.notes) setNotes(result.notes.map((row: { text: string }) => row.text));
-      if (result.url) openUrl(result.url);
+      const result = await client()(action, input);
+      if ('token' in result) { token = result.token ?? ''; if (!token) setNotes([]); }
+      if ('notes' in result) setNotes(result.notes.map(row => row.text));
+      if ('url' in result) openUrl(result.url);
       setMessage(`${action} succeeded`);
     } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
+    finally { setBusy(false); }
   }
-  return <View style={{ maxWidth: '640px', margin: '32px auto', padding: '16px', fontFamily: 'sans-serif' }}>
-    <Heading>OneStack Universal</Heading>
+  return <Screen>
+    <Title>OneStack Universal</Title>
+    <Caption>One shared app. Web, desktop and mobile.</Caption>
+    <Row>
     <Button onClick={() => router.navigate('/')}>Notes</Button><Button onClick={() => router.navigate('/billing')}>Billing</Button>
-    <Text>{message}</Text>
-    <Input placeholder="Email" aria-label="Email" onInput={(e: any) => { email = e.target.value; }} />
-    <Input type="password" placeholder="Password (12+ characters)" aria-label="Password" onInput={(e: any) => { password = e.target.value; }} />
-    <Button onClick={() => call('signup', { email, password })}>Sign up</Button>
-    <Button onClick={() => call('signin', { email, password })}>Sign in</Button>
-    <Button onClick={() => call('signout')}>Sign out</Button>
-    {() => page() === 'notes' ? <View>
-      <Input placeholder="Write a note" aria-label="Note" onInput={(e: any) => { note = e.target.value; }} />
-      <Button onClick={() => call('notes', { text: note })}>Save and read notes</Button>
-      <Button onClick={() => call('upload', { text: note })}>Upload note as a file</Button>
+    </Row>
+    <Text role="status" aria-live="polite">{message}</Text>
+    {() => page() === 'notes' ? <Card>
+    <Caption>Backend URL (leave empty for same-origin web)</Caption>
+    <Input value={() => backend} placeholder="https://api.example.com" aria-label="Backend URL" disabled={busy} onInput={(e: any) => { backend = e.target.value; token = ''; if (notes().length) setNotes([]); }} />
+    <Input value={() => email} placeholder="Email" aria-label="Email" onInput={(e: any) => { email = e.target.value; }} />
+    <Input value={() => password} type="password" placeholder="Password (12+ characters)" aria-label="Password" onInput={(e: any) => { password = e.target.value; }} />
+    <Button disabled={busy} onClick={() => call('signup', { email, password })}>Sign up</Button>
+    <Button disabled={busy} onClick={() => call('signin', { email, password })}>Sign in</Button>
+    <Button disabled={busy} tone="secondary" onClick={() => call('signout', {})}>Sign out</Button>
+    </Card> : null}
+    {() => page() === 'notes' ? <Card>
+      <Input value={() => note} placeholder="Write a note" aria-label="Note" onInput={(e: any) => { note = e.target.value; }} />
+      <Button disabled={busy} onClick={() => call('notes', { text: note })}>Save and read notes</Button>
+      <Button disabled={busy} onClick={() => call('upload', { text: note })}>Upload note as a file</Button>
       {() => notes().map(text => <Text>{text}</Text>)}
-    </View> : <View>
+    </Card> : <Card>
       <Text>Checkout requires server-side Stripe test credentials and STRIPE_PRICE_ID.</Text>
-      <Button onClick={() => call('checkout')}>Subscribe</Button>
-      <Button onClick={() => call('portal')}>Manage subscription</Button>
-    </View>}
-  </View>;
+      <Button disabled={busy} onClick={() => call('checkout', {})}>Subscribe</Button>
+      <Button disabled={busy} onClick={() => call('portal', {})}>Manage subscription</Button>
+    </Card>}
+  </Screen>;
 }

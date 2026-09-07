@@ -69,6 +69,8 @@ export interface OneStackAdapterConfig { provider: string; [key: string]: unknow
 export interface OneStackDeployConfig { provider?: "vercel" | "netlify" | "cloudflare" | "node" | "docker" | "static"; }
 
 export interface OneStackConfig {
+  /** Public API origin, never provider credentials. Empty means same-origin web requests. */
+  api?: { origin?: string };
   app?: OneStackAppConfig;
   desktop?: OneStackDesktopConfig;
   mobile?: OneStackMobileConfig;

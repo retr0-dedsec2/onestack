@@ -1,3 +1,4 @@
+import { styleToCss, type StyleObject } from "@onestack/styles";
 import { Fragment, isKeyedList, isVNode, normalizeChildren, type Child, type KeyedList, type VNode } from "@onestack/core";
 
 const VOID_ELEMENTS = new Set(["area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"]);
@@ -16,16 +17,8 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#39;");
 }
 
-function kebab(value: string) {
-  return value.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-}
-
 function serializeStyle(value: unknown) {
-  if (!value || typeof value !== "object") return "";
-  return Object.entries(value as Record<string, unknown>)
-    .filter(([, entry]) => entry !== null && entry !== undefined)
-    .map(([key, entry]) => `${kebab(key)}:${String(entry)}`)
-    .join(";");
+  return value && typeof value === 'object' ? styleToCss(value as StyleObject) : typeof value === 'string' ? value : '';
 }
 
 function serializeProps(props: Record<string, unknown>, hydrationId: number) {

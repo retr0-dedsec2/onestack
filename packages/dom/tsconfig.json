@@ -23,6 +23,9 @@
     },
     {
       "path": "../reconciler"
+    },
+    {
+      "path": "../styles"
     }
   ],
   "include": [

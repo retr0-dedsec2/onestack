@@ -7,7 +7,7 @@ export default async function nodeHandler(req, res) {
   try {
     const headers = new Headers();
     for (const [key, value] of Object.entries(req.headers)) if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-    const request = new Request(new URL(req.url, 'http://localhost'), { method: req.method, headers, ...(!['GET','HEAD'].includes(req.method) ? { body: Readable.toWeb(req), duplex: 'half' } : {}) });
+    const request = new Request(new URL(req.url, (req.socket?.encrypted || (process.env.ONESTACK_TRUST_PROXY === '1' && req.headers['x-forwarded-proto'] === 'https') ? 'https://' : 'http://') + (req.headers.host ?? 'localhost')), { method: req.method, headers, ...(!['GET','HEAD'].includes(req.method) ? { body: Readable.toWeb(req), duplex: 'half' } : {}) });
     const response = await handler(request);
     res.statusCode = response.status;
     for (const [key, value] of response.headers) if (key !== 'set-cookie') res.setHeader(key, value);

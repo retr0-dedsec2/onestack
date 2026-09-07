@@ -91,10 +91,11 @@ if (parsed.command === "import") {
 if (parsed.command === "add") {
   const name = parsed.args[0]; if (!name) { console.error("Usage: onestack add <component>"); process.exit(1); }
   const templates: Record<string, string> = {
+    theme: `import { createDesignSystem } from "@onestack/ui";\n\nexport const { Screen, Stack, Row, Card, Title, Text, Caption, Button, Input, tokens } = createDesignSystem({ colors: { primary: "#3157d5" }, radius: 12 });\n`,
     button: `import { Button as PrimitiveButton } from "@onestack/ui";\n\nexport function Button(props: Record<string, unknown>) {\n  return <PrimitiveButton {...props} />;\n}\n`,
     card: `import { Card as PrimitiveCard } from "@onestack/ui";\n\nexport function Card(props: Record<string, unknown>) {\n  return <PrimitiveCard {...props} />;\n}\n`,
   };
   const template = templates[name.toLowerCase()]; if (!template) { console.error(`Unknown built-in component: ${name}. Available: ${Object.keys(templates).join(", ")}`); process.exit(1); }
   const outDir = resolve(root, "src/components/ui"); mkdirSync(outDir, { recursive: true });
-  const outputPath = resolve(outDir, `${name.toLowerCase()}.tsx`); writeFileSync(outputPath, template); console.log(`Added ${name} -> ${outputPath.slice(root.length + 1)}`); process.exit(0);
+  const outputPath = resolve(outDir, `${name.toLowerCase()}.tsx`); writeFileSync(outputPath, template, { flag: 'wx' }); console.log(`Added ${name} -> ${outputPath.slice(root.length + 1)}`); process.exit(0);
 }

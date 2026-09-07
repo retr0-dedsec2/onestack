@@ -40,3 +40,12 @@ describe("OneStack DOM runtime", () => {
     expect(container.querySelector('[data-id="b"]')?.textContent).toBe("Bee");
   });
 });
+
+it('renders numeric design tokens as CSS lengths and removes stale reactive styles', async () => {
+  const [style, setStyle] = createSignal<Record<string, string | number>>({ padding: 16, gap: 8, opacity: 0.5, '--scale': 2 });
+  const container = document.createElement('div'); render(<div style={style}>Design</div>, container);
+  const element = container.firstElementChild as HTMLElement;
+  expect(element.style.padding).toBe('16px'); expect(element.style.gap).toBe('8px');
+  expect(element.style.opacity).toBe('0.5'); expect(element.style.getPropertyValue('--scale')).toBe('2');
+  setStyle({ padding: 4 }); await tick(); expect(element.style.padding).toBe('4px'); expect(element.style.gap).toBe('');
+});

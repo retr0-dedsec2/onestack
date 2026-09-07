@@ -45,6 +45,10 @@ OneStack contains a web/full-stack core, hybrid desktop runtime, native Android/
 
 The same OneStack components, signals, routes, styles and business logic are used by web and desktop applications.
 
+## Easier design and full-stack development
+
+Use `onestack add theme` for a portable design kit. `onestack dev` now serves the frontend and Fetch backend together. Share a typed API contract and one public backend origin across builds. See the [design/platform guide](docs/design-and-platforms.md) for usage and downloadable application artifacts.
+
 ## CLI
 
 ```bash
