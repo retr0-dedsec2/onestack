@@ -108,8 +108,8 @@ class MainActivity : Activity() {
             val gap = dp(props.optJSONObject("style")?.optDouble("gap", 0.0) ?: 0.0)
             for (i in 0 until children.length()) {
                 val child = render(children.getJSONObject(i))
-                val params = LinearLayout.LayoutParams(if (orientation == VERTICAL) -1 else -2, -2)
-                if (i > 0) { if (orientation == VERTICAL) params.topMargin = gap else params.leftMargin = gap }
+                val params = LinearLayout.LayoutParams(if (orientation == LinearLayout.VERTICAL) -1 else -2, -2)
+                if (i > 0) { if (orientation == LinearLayout.VERTICAL) params.topMargin = gap else params.leftMargin = gap }
                 addView(child, params)
             }
         }

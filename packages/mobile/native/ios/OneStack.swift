@@ -46,7 +46,7 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
                 callbacks.removeAll()
                 let next = try render(node); content?.removeFromSuperview(); content = next
                 view.addSubview(next); next.translatesAutoresizingMaskIntoConstraints = false
-                NSLayoutConstraint.activate([next.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16), next.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16), next.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16)])
+                NSLayoutConstraint.activate([next.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16), next.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16), next.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16), next.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)])
             } else if let request = body["request"] as? [String: Any] { invoke(request) }
         } catch { showError(error) }
     }
@@ -146,7 +146,7 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
         }
         let font = UIFont.systemFont(ofSize: number("fontSize", 16), weight: number("fontWeight", 400) >= 600 ? .bold : .regular)
         if let label = result as? UILabel { label.font = font; if let c = color(style["color"]) { label.textColor = c } }
-        if let input = result as? UITextField { input.font = font; if let c = color(style["color"]) { input.textColor = c } }
+        if let input = result as? UITextField { if style["borderWidth"] != nil { input.borderStyle = .none }; input.font = font; if let c = color(style["color"]) { input.textColor = c } }
         if let button = result as? UIButton {
             button.titleLabel?.font = font
             if let c = color(style["color"]) { button.setTitleColor(c, for: .normal) }
@@ -171,10 +171,11 @@ final class OneStackController: UIViewController, WKScriptMessageHandler, WKNavi
         switch type {
         case "View", "SafeArea": return try stack()
         case "ScrollView":
-            let scroll = UIScrollView(), child = try stack(); scroll.addSubview(child); child.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([child.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor), child.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor), child.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor), child.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor), child.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor), scroll.heightAnchor.constraint(equalToConstant: 400)])
+            let scroll = UIScrollView(), child = try stack()
+            let preferredHeight = scroll.heightAnchor.constraint(equalToConstant: 400); preferredHeight.priority = .defaultLow; preferredHeight.isActive = true; scroll.addSubview(child); child.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([child.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor), child.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor), child.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor), child.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor), child.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor)])
             return scroll
-        case "Text": let label = UILabel(); label.text = text(node); label.numberOfLines = 0; return label
+        case "Text": let label = UILabel(); label.text = text(node); label.numberOfLines = 0; label.isAccessibilityElement = true; label.accessibilityLabel = text(node); label.accessibilityTraits = .staticText; return label
         case "Pressable":
             let button = UIButton(type: .system); button.setTitle(text(node), for: .normal); button.isEnabled = props["disabled"] as? Bool != true
             let id = props["onPress"] as? String ?? props["onClick"] as? String ?? ""

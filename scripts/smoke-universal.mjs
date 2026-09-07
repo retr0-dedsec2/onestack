@@ -23,9 +23,9 @@ try {
   }
   assert(ready, 'server should start');
   assert.match(await (await fetch(base)).text(), /OneStack Universal/);
-  const signup = await fetch(base + '/api/signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'smoke@example.com', password: 'a long integration test password' }) });
+  const signup = await fetch(base + '/api/signup', { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify({ email: 'smoke@example.com', password: 'a long integration test password' }) });
   const user = await signup.json(); assert(user.token, 'signup issues a session token');
-  const call = (action, input = {}) => fetch(base + '/api/' + action, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${user.token}` }, body: JSON.stringify(input) });
+  const call = (action, input = {}) => fetch(base + '/api/' + action, { method: 'POST', headers: { 'content-type': 'application/json', origin: base, authorization: `Bearer ${user.token}` }, body: JSON.stringify(input) });
   assert.equal((await (await call('notes', { text: 'integration note' })).json()).notes[0].text, 'integration note');
   assert((await (await call('upload', { text: 'file bytes' })).json()).key);
   assert.equal((await call('checkout')).status, 503, 'missing payment credentials fail explicitly');

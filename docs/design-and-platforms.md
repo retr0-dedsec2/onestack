@@ -13,7 +13,7 @@ One development command now serves the Vite frontend and `src/server.ts` Fetch h
 
 ## Design without repeating CSS
 
-Run `onestack add theme` inside your application to create `src/components/ui/theme.tsx` (review existing files first; the existing add command overwrites its generated destination). Import its components in shared web/desktop/mobile JSX:
+Run `onestack add theme` inside your application to create `src/components/ui/theme.tsx` (existing files are preserved; the command refuses to overwrite them). Import its components in shared web/desktop/mobile JSX:
 
 ```tsx
 import { createDesignSystem } from '@onestack/ui';
@@ -69,3 +69,5 @@ Every successful PR CI run uploads:
 Open the CI run and download its **Artifacts**. Desktop artifacts include both the offline counter demo and the universal client; the framework itself is a TypeScript library/CLI, not a standalone GUI executable. Keep each portable bundle intact. SHA256SUMS.txt accompanies desktop archives. Archives preserve executable permissions and hidden application manifests. Windows/Linux builds use x64 runners; macOS follows the runner architecture shown in the filename. These are development builds, not notarized/store-signed releases. No backend database or provider secrets are packaged.
 
 Implementation references: [Vite SSR middleware](https://vite.dev/guide/ssr) and [GitHub artifact preservation](https://github.com/actions/upload-artifact).
+
+When a trusted reverse proxy terminates TLS for Node output, set `ONESTACK_TRUST_PROXY=1` so its `X-Forwarded-Proto: https` header determines the Fetch request origin. Configure this only behind that proxy. Same-origin development and direct HTTP Node requests work without it.

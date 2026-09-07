@@ -97,5 +97,5 @@ if (parsed.command === "add") {
   };
   const template = templates[name.toLowerCase()]; if (!template) { console.error(`Unknown built-in component: ${name}. Available: ${Object.keys(templates).join(", ")}`); process.exit(1); }
   const outDir = resolve(root, "src/components/ui"); mkdirSync(outDir, { recursive: true });
-  const outputPath = resolve(outDir, `${name.toLowerCase()}.tsx`); writeFileSync(outputPath, template); console.log(`Added ${name} -> ${outputPath.slice(root.length + 1)}`); process.exit(0);
+  const outputPath = resolve(outDir, `${name.toLowerCase()}.tsx`); writeFileSync(outputPath, template, { flag: 'wx' }); console.log(`Added ${name} -> ${outputPath.slice(root.length + 1)}`); process.exit(0);
 }
